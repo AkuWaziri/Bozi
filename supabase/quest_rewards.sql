@@ -109,7 +109,7 @@ create table if not exists public.bozi_quest_reward_claims (
   chain_id bigint,
   tx_hash text,
   status text not null default 'pending'
-    check (status in ('pending','confirmed','failed')),
+    check (status in ('pending','processing','confirmed','failed')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique(user_id,quest_id,reward_type)
