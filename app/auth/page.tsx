@@ -31,7 +31,7 @@ export default function AuthPage() {
         : await supabase.auth.signUp({
             email,
             password,
-            options: { emailRedirectTo: window.location.origin + "/auth" },
+            options: { emailRedirectTo: "https://bozi.quest/auth" },
           });
 
     if (result.error) {
