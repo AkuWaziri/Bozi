@@ -75,7 +75,7 @@ create table if not exists public.bozi_x_quest_claims (
   stablecoin_amount numeric(30,18),
   payout_wallet text,
   payout_status text not null default 'not_required'
-    check (payout_status in ('not_required','pending','confirmed','failed')),
+    check (payout_status in ('not_required','pending','processing','confirmed','failed')),
   payout_tx_hash text,
   verified_at timestamptz,
   rewarded_at timestamptz,
@@ -465,3 +465,23 @@ $$;
 
 revoke all on function public.bozi_claim_educational_reward(uuid) from public;
 grant execute on function public.bozi_claim_educational_reward(uuid) to authenticated;
+
+
+create or replace function public.bozi_begin_x_payout(p_claim_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare v_user uuid:=auth.uid(); v_ok boolean;
+begin
+  if v_user is null then raise exception 'Not authenticated'; end if;
+  update public.bozi_x_quest_claims
+  set payout_status='processing',updated_at=now()
+  where id=p_claim_id and user_id=v_user and stablecoin_enabled=true and payout_status='pending';
+  get diagnostics v_ok = row_count;
+  return v_ok;
+end;
+$$;
+revoke all on function public.bozi_begin_x_payout(uuid) from public;
+grant execute on function public.bozi_begin_x_payout(uuid) to authenticated;
