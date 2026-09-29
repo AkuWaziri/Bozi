@@ -2,6 +2,6 @@
 
 :root{--bg:#07080b;--panel:#0e1117;--line:#202630;--text:#f7f8fa;--muted:#8d96a5;--lime:#b8ff3d;--violet:#9b7cff;--cyan:#54d9ff}
 *{box-sizing:border-box}
-html{background:var(--bg)}
-body{margin:0;background:radial-gradient(circle at 80% 0%,rgba(155,124,255,.13),transparent 30%),radial-gradient(circle at 10% 20%,rgba(184,255,61,.08),transparent 25%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+html{background:var(--bg);overflow-x:hidden}
+body{margin:0;min-width:0;max-width:100%;overflow-x:hidden;background:radial-gradient(circle at 80% 0%,rgba(155,124,255,.13),transparent 30%),radial-gradient(circle at 10% 20%,rgba(184,255,61,.08),transparent 25%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,sans-serif}
 button{font:inherit}
