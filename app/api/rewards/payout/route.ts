@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createPublicClient, createWalletClient, http, parseUnits, getAddress } from "viem";
+import { createPublicClient, createWalletClient, http, parseUnits, getAddress, type Address } from "viem";
 import { base } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
 
@@ -25,7 +25,7 @@ export async function POST(request:NextRequest){
    if(educational.status==="confirmed")return NextResponse.json({status:"confirmed",txHash:educational.tx_hash});
    if(!key)return NextResponse.json({status:"pending",message:"Stablecoin payout is queued for the configured payout signer."});
    if(educational.chain_id!==8453)return NextResponse.json({error:"Unsupported payout network."},{status:400});
-   let recipient:string,tokenAddress:string;try{recipient=getAddress(profile.wallet_address);tokenAddress=getAddress(educational.token_address)}catch{return NextResponse.json({error:"Invalid payout address."},{status:400})}
+   let recipient:Address,tokenAddress:Address;try{recipient=getAddress(profile.wallet_address);tokenAddress=getAddress(educational.token_address)}catch{return NextResponse.json({error:"Invalid payout address."},{status:400})}
    const locked=await db.from("bozi_quest_reward_claims").update({status:"processing",updated_at:new Date().toISOString()}).eq("id",claimId).eq("status","pending").select("id").maybeSingle();
    if(!locked.data)return NextResponse.json({status:"pending",message:"Another payout attempt is already processing."});
    try{
