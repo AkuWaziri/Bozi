@@ -6,7 +6,7 @@ import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Clock3, Loader2, LockKey
 import { useEffect, useState } from "react";
 import { supabase } from "../../../../lib/supabase/client";
 
-type Quest = { id: string; title: string; slug?: string | null; category?: string | null; difficulty?: string | null; description?: string | null };
+type Quest = { id: string; title: string; slug?: string | null; category?: string | null; difficulty?: string | null; description?: string | null; summary?: string | null; social_task_enabled?: boolean; social_instructions?: string | null; social_points?: number };
 type Lesson = { id: string; title?: string | null; content_md?: string | null; content?: string | null };
 type Question = { id: string; prompt?: string | null; question?: string | null; options?: unknown; points?: number };
 
@@ -21,6 +21,10 @@ export default function QuestDetail() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(false);
+  const [socialUrl, setSocialUrl] = useState("");
+  const [socialSubmitting, setSocialSubmitting] = useState(false);
+  const [socialResult, setSocialResult] = useState<{ points: number; already: boolean } | null>(null);
+  const [socialError, setSocialError] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -120,7 +124,68 @@ export default function QuestDetail() {
           </>
         )}
 
-        {step === questions.length && questions.length > 0 && <div className="mt-5 rounded-2xl border border-[var(--lime)]/30 bg-[var(--lime)]/10 p-5"><p className="font-bold">Quiz completed.</p><p className="mt-1 text-sm text-[var(--muted)]">Correct answers have been verified server-side and credited to your Bozi points ledger.</p><Link href="/dashboard" className="mt-4 inline-flex items-center gap-2 font-semibold text-[var(--lime)]">Back to dashboard <ArrowRight size={14} /></Link></div>}
+        {step === questions.length && questions.length > 0 && (
+  <div className="mt-5 rounded-2xl border border-[var(--lime)]/30 bg-[var(--lime)]/10 p-5">
+    <p className="font-bold">Quiz completed.</p>
+    <p className="mt-1 text-sm text-[var(--muted)]">Correct answers have been verified server-side and credited to your Bozi points ledger.</p>
+  </div>
+)}
+
+{step === questions.length && quest.social_task_enabled && (
+  <div className="mt-5 rounded-2xl border border-[var(--line)] bg-white/[.025] p-5">
+    <p className="text-xs font-bold uppercase tracking-[.14em] text-[var(--lime)]">X task · +{quest.social_points ?? 20} points</p>
+    <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+      {quest.social_instructions || "Write an original X post about what you learned in this quest, then submit the post URL."}
+    </p>
+    <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+      <input
+        value={socialUrl}
+        onChange={(e) => { setSocialUrl(e.target.value); setSocialError(""); }}
+        placeholder="https://x.com/username/status/..."
+        className="min-w-0 flex-1 rounded-xl border border-[var(--line)] bg-black/10 px-4 py-3 text-sm outline-none focus:border-[var(--lime)]"
+        disabled={socialSubmitting || socialResult !== null}
+      />
+      <button
+        disabled={!socialUrl.trim() || socialSubmitting || socialResult !== null}
+        onClick={async () => {
+          setSocialSubmitting(true);
+          setSocialError("");
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.access_token) {
+            setSocialError("Please sign in again.");
+            setSocialSubmitting(false);
+            return;
+          }
+          const response = await fetch("/api/social/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+            body: JSON.stringify({ questId: quest.id, postUrl: socialUrl.trim() }),
+          });
+          const result = await response.json().catch(() => ({}));
+          setSocialSubmitting(false);
+          if (!response.ok) {
+            setSocialError(result.error || "Unable to verify this post.");
+            return;
+          }
+          setSocialResult({ points: Number(result.pointsAwarded || 0), already: Boolean(result.alreadySubmitted) });
+        }}
+        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[var(--lime)] px-4 py-3 text-sm font-bold text-black disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {socialSubmitting ? <><Loader2 size={16} className="animate-spin" /> Verifying…</> : "Verify post"}
+      </button>
+    </div>
+    {socialError && <p className="mt-3 text-sm text-red-400">{socialError}</p>}
+    {socialResult && (
+      <p className="mt-3 text-sm text-[var(--lime)]">
+        {socialResult.already ? "This post was already rewarded." : `Verified · +${socialResult.points} points`}
+      </p>
+    )}
+  </div>
+)}
+
+{step === questions.length && questions.length > 0 && (
+  <Link href="/dashboard" className="mt-4 inline-flex items-center gap-2 font-semibold text-[var(--lime)]">Back to dashboard <ArrowRight size={14} /></Link>
+)}
 
         <div className="mt-8 flex flex-wrap items-center gap-4 text-xs text-[var(--muted)]"><span className="flex items-center gap-2"><Clock3 size={14} /> Learn at your pace</span><span className="flex items-center gap-2"><LockKeyhole size={14} /> Points verified by database</span></div>
       </div>
