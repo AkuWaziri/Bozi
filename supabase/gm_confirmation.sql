@@ -70,23 +70,37 @@ begin
     now()
   );
 
-  insert into public.bozi_points_ledger (
-    user_id,
-    source_type,
-    source_id,
-    points,
-    description
-  )
-  select
-    v_user_id,
-    'gm',
-    g.id,
-    50,
-    'Confirmed onchain GM'
-  from public.bozi_gm_checkins g
-  where g.network_id = p_network_id
-    and g.tx_hash = lower(p_tx_hash)
-  on conflict (user_id, source_type, source_id) do nothing;
+  if not exists (
+    select 1
+    from public.bozi_points_ledger
+    where user_id = v_user_id
+      and source_type = 'gm'
+      and source_id = (
+        select g.id
+        from public.bozi_gm_checkins g
+        where g.network_id = p_network_id
+          and g.tx_hash = lower(p_tx_hash)
+        limit 1
+      )
+  ) then
+    insert into public.bozi_points_ledger (
+      user_id,
+      source_type,
+      source_id,
+      points,
+      description
+    )
+    select
+      v_user_id,
+      'gm',
+      g.id,
+      50,
+      'Confirmed onchain GM'
+    from public.bozi_gm_checkins g
+    where g.network_id = p_network_id
+      and g.tx_hash = lower(p_tx_hash)
+    limit 1;
+  end if;
 
   return query select true, 50, false;
 end;
