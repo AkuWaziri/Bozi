@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight, BookOpen, CheckCircle2, Flame, Trophy } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "../../../lib/supabase/client";
 
 const previewQuests = [
   { title: "How stablecoins work", category: "Fundamentals", reward: 80, progress: "Start quest" },
@@ -8,16 +12,36 @@ const previewQuests = [
 ];
 
 export default function Dashboard() {
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (mounted) setEmail(data.session?.user.email ?? null);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setEmail(session?.user.email ?? null);
+    });
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
   return <div className="mx-auto max-w-7xl px-4 py-7 pb-24 md:px-8 md:py-10">
     <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
-      <div><p className="text-sm font-medium text-[var(--muted)]">Welcome to Bozi</p><h1 className="mt-1 text-3xl font-black tracking-tight md:text-4xl">Learn something useful today.</h1><p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">Complete quests, prove what you learned, and build your points history.</p></div>
+      <div>
+        <p className="text-sm font-medium text-[var(--muted)]">{email ? "Welcome back" : "Welcome to Bozi"}</p>
+        <h1 className="mt-1 text-3xl font-black tracking-tight md:text-4xl">Learn something useful today.</h1>
+        <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">Complete quests, prove what you learned, and build your points history.</p>
+      </div>
       <Link href="/quests" className="inline-flex w-fit items-center gap-2 rounded-xl bg-[var(--lime)] px-4 py-3 text-sm font-bold text-black">Explore quests <ArrowRight size={16}/></Link>
     </div>
 
     <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <Stat icon={Trophy} label="Total points" value="—" note="Sign in to start" />
-      <Stat icon={BookOpen} label="Quests completed" value="—" note="Your progress" />
-      <Stat icon={Flame} label="GM streak" value="—" note="Optional activity" />
+      <Stat icon={Trophy} label="Total points" value="0" note="Start earning points" />
+      <Stat icon={BookOpen} label="Quests completed" value="0" note="Your progress" />
+      <Stat icon={Flame} label="GM streak" value="0" note="Optional activity" />
       <Stat icon={CheckCircle2} label="Rank" value="—" note="Leaderboard" />
     </div>
 
@@ -31,7 +55,7 @@ export default function Dashboard() {
     </section>
 
     <div className="mt-8 rounded-2xl border border-dashed border-[var(--line)] p-5 text-sm text-[var(--muted)]">
-      <span className="font-semibold text-white">Development preview.</span> The dashboard is now wired as a product shell. Points, quests, streaks and ranks will come from Supabase once the data layer is connected.
+      <span className="font-semibold text-white">Bozi account.</span> {email ? <>Signed in as <span className="font-semibold text-white">{email}</span>. Your verified activity will build your points history.</> : "Your verified activity will build your points history."}
     </div>
   </div>;
 }
