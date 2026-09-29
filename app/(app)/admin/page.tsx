@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode, type InputHTMLAttributes, type TextareaHTMLAttributes, type SelectHTMLAttributes } from "react";
 import { FilePlus2, Plus, Save, ShieldCheck } from "lucide-react";
 import { supabase } from "../../../lib/supabase/client";
 
@@ -140,10 +140,10 @@ export default function Admin(){
   </div>;
 }
 
-function Field({label,children}:{label:string;children:React.ReactNode}){return <label className="block text-xs font-semibold text-[var(--muted)]">{label}<div className="mt-2">{children}</div></label>}
-function Input(p:any){return <input {...p} className={"w-full rounded-xl border border-[var(--line)] bg-black/10 px-3 py-2.5 text-sm outline-none "+(p.className??"")}/>}
-function TextArea(p:any){return <textarea {...p} className={"w-full rounded-xl border border-[var(--line)] bg-black/10 px-3 py-2.5 text-sm outline-none "+(p.className??"")}/>}
-function Select(p:any){return <select {...p} className="w-full rounded-xl border border-[var(--line)] bg-black/10 px-3 py-2.5 text-sm outline-none"/>}
+function Field({label,children}:{label:string;children:ReactNode}){return <label className="block text-xs font-semibold text-[var(--muted)]">{label}<div className="mt-2">{children}</div></label>}
+function Input(p:InputHTMLAttributes<HTMLInputElement>){return <input {...p} className={"w-full rounded-xl border border-[var(--line)] bg-black/10 px-3 py-2.5 text-sm outline-none "+(p.className??"")}/>}
+function TextArea(p:TextareaHTMLAttributes<HTMLTextAreaElement>){return <textarea {...p} className={"w-full rounded-xl border border-[var(--line)] bg-black/10 px-3 py-2.5 text-sm outline-none "+(p.className??"")}/>}
+function Select(p:SelectHTMLAttributes<HTMLSelectElement>){return <select {...p} className="w-full rounded-xl border border-[var(--line)] bg-black/10 px-3 py-2.5 text-sm outline-none"/>}
 function QuestionEditor({q,onChange,onSave,busy}:{q:Question;onChange:(q:Question)=>void;onSave:()=>void;busy:boolean}){
  const options=Array.isArray(q.options)?q.options:[];
  return <div className="rounded-xl border border-[var(--line)] p-4">
