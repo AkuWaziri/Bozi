@@ -29,7 +29,7 @@ export default function QuestDetail(){
   setBusy(true);setMessage("");const {data:{session}}=await supabase.auth.getSession();if(!session){setMessage("Please sign in again.");setBusy(false);return}
   const endpoint=quest.x_action==="follow"?"/api/x/quest/follow":"/api/x/quest/post";
   const response=await fetch(endpoint,{method:"POST",headers:{Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({questId:quest.id,...(quest.x_action==="post"?{postUrl:xInput}:{})})});
-  const r=await response.json().catch(()=>({}));setBusy(false);if(!response.ok){setMessage(r.error||"Verification failed.");return}setReward(r);setStep(1);
+  const r=await response.json().catch(()=>({}));setBusy(false);if(!response.ok){setMessage(r.error||"Verification failed.");return}if(r?.stablecoinEnabled&&r?.claimId)await processPayout(r.claimId);setReward(r);setStep(1);
  }
 
  return <div className="mx-auto max-w-3xl px-4 py-8 pb-24 md:px-8 md:py-10">
