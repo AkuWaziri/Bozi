@@ -26,7 +26,7 @@ export async function POST(request:NextRequest){
    if(!key)return NextResponse.json({status:"pending",message:"Stablecoin payout is queued for the configured payout signer."});
    if(educational.chain_id!==8453)return NextResponse.json({error:"Unsupported payout network."},{status:400});
    let recipient:string,tokenAddress:string;try{recipient=getAddress(profile.wallet_address);tokenAddress=getAddress(educational.token_address)}catch{return NextResponse.json({error:"Invalid payout address."},{status:400})}
-   const locked=await db.from("bozi_quest_reward_claims").update({status:"pending",updated_at:new Date().toISOString()}).eq("id",claimId).eq("status","pending").select("id").maybeSingle();
+   const locked=await db.from("bozi_quest_reward_claims").update({status:"processing",updated_at:new Date().toISOString()}).eq("id",claimId).eq("status","pending").select("id").maybeSingle();
    if(!locked.data)return NextResponse.json({status:"pending",message:"Another payout attempt is already processing."});
    try{
      const account=privateKeyToAccount(key as `0x${string}`),transport=http(rpc||"https://mainnet.base.org"),wallet=createWalletClient({account,chain:base,transport}),publicClient=createPublicClient({chain:base,transport});
