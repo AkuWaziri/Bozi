@@ -63,6 +63,8 @@ export default function GM() {
   const [busy, setBusy] = useState(false);
   const [txHash, setTxHash] = useState("");
   const [completed, setCompleted] = useState(false);
+  const [recoveryHash, setRecoveryHash] = useState("");
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
 
   const walletClient = useMemo(
     () =>
@@ -135,6 +137,40 @@ export default function GM() {
           blockExplorerUrls: ["https://basescan.org"],
         }],
       });
+    }
+  }
+
+  async function verifyExistingGM() {
+    const hash = recoveryHash.trim();
+    if (!/^0x[a-fA-F0-9]{64}$/.test(hash)) {
+      setStatus("Enter a valid Base transaction hash.");
+      return;
+    }
+    if (!wallet) {
+      setStatus("Connect the wallet that made the GM transaction.");
+      return;
+    }
+    setRecoveryBusy(true);
+    setStatus("Verifying the existing GM transaction…");
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) throw new Error("Your Bozi session expired. Please sign in again.");
+      const response = await fetch("/api/gm/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ txHash: hash, walletAddress: wallet }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "GM verification failed.");
+      setTxHash(hash);
+      setCompleted(true);
+      setRecoveryHash("");
+      setStatus(result.pointsAwarded > 0 ? "+50 points recovered." : "GM was already recorded.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Unable to verify the GM transaction.");
+    } finally {
+      setRecoveryBusy(false);
     }
   }
 
@@ -253,6 +289,16 @@ export default function GM() {
               >
                 View transaction on BaseScan
               </a>
+            )}
+            {wallet && (
+              <div className="mt-5 border-t border-[var(--line)] pt-4">
+                <p className="text-[11px] font-semibold text-[var(--muted)]">Already completed a GM?</p>
+                <p className="mt-1 text-[10px] leading-4 text-[var(--muted)]">Recover points from a confirmed Base GM without making another transaction.</p>
+                <input value={recoveryHash} onChange={(e) => setRecoveryHash(e.target.value)} placeholder="Paste Base transaction hash" className="mt-3 w-full rounded-xl border border-[var(--line)] bg-black/10 px-3 py-2 text-xs outline-none" disabled={recoveryBusy} />
+                <button onClick={verifyExistingGM} disabled={recoveryBusy || !recoveryHash.trim()} className="mt-2 w-full rounded-xl border border-[var(--line)] px-3 py-2 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-50">
+                  {recoveryBusy ? "Verifying…" : "Verify existing GM"}
+                </button>
+              </div>
             )}
           </div>
         </section>
