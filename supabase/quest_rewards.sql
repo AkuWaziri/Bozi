@@ -404,3 +404,64 @@ $$;
 
 revoke all on function public.bozi_blacklist_x_user_internal(text,uuid,text) from public;
 grant execute on function public.bozi_blacklist_x_user_internal(text,uuid,text) to authenticated;
+
+
+create or replace function public.bozi_claim_educational_reward(p_quest_id uuid)
+returns table(
+  points_awarded integer,
+  stablecoin_enabled boolean,
+  stablecoin_amount numeric,
+  stablecoin_symbol text,
+  already_claimed boolean
+)
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  v_user_id uuid:=auth.uid();
+  v_quest public.bozi_quests%rowtype;
+  v_total integer;
+  v_correct integer;
+  v_points integer;
+  v_already boolean;
+begin
+  if v_user_id is null then raise exception 'Not authenticated'; end if;
+  select * into v_quest from public.bozi_quests where id=p_quest_id and status='published' and quest_type='educational';
+  if not found then raise exception 'Educational quest is not available'; end if;
+
+  select count(*),count(*) filter(where a.is_correct)
+    into v_total,v_correct
+  from public.bozi_questions q
+  join public.bozi_lessons l on l.id=q.lesson_id
+  left join public.bozi_quiz_attempts a on a.question_id=q.id and a.user_id=v_user_id
+  where l.quest_id=p_quest_id;
+
+  if v_total=0 or v_correct<>v_total then raise exception 'Complete every quiz question correctly before claiming the quest reward'; end if;
+
+  select exists(select 1 from public.bozi_quest_reward_claims where user_id=v_user_id and quest_id=p_quest_id and reward_type='points') into v_already;
+
+  v_points:=case when v_quest.reward_points_enabled then greatest(v_quest.reward_points,0) else 0 end;
+
+  if v_points>0 and not v_already then
+    insert into public.bozi_quest_reward_claims(user_id,quest_id,reward_type,amount_numeric,status)
+    values(v_user_id,p_quest_id,'points',v_points,'confirmed')
+    on conflict(user_id,quest_id,reward_type) do nothing;
+
+    insert into public.bozi_points_ledger(user_id,source_type,source_id,points,description)
+    values(v_user_id,'quest_reward',p_quest_id,v_points,'Completed educational quest')
+    on conflict(user_id,source_type,source_id) do nothing;
+  end if;
+
+  if v_quest.reward_stablecoin_enabled then
+    insert into public.bozi_quest_reward_claims(user_id,quest_id,reward_type,amount_numeric,token_symbol,token_address,chain_id,status)
+    values(v_user_id,p_quest_id,'stablecoin',v_quest.reward_stablecoin_amount,v_quest.reward_stablecoin_symbol,v_quest.reward_stablecoin_token_address,v_quest.reward_stablecoin_chain_id,'pending')
+    on conflict(user_id,quest_id,reward_type) do nothing;
+  end if;
+
+  return query select v_points,v_quest.reward_stablecoin_enabled,v_quest.reward_stablecoin_amount,v_quest.reward_stablecoin_symbol,v_already;
+end;
+$$;
+
+revoke all on function public.bozi_claim_educational_reward(uuid) from public;
+grant execute on function public.bozi_claim_educational_reward(uuid) to authenticated;
