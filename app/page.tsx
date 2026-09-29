@@ -40,7 +40,7 @@ export default function Home(){
    </div>
   </section>
 
-  <section id="quests" className="mx-auto max-w-7xl px-4 py-14 sm:px-5 md:px-8 md:py-16">
+  <section id="quests" className="mx-auto max-w-7xl px-4 py-14 sm:px-5 md:px-8 md:py-16"> {/* responsive quest section refreshed */}
    <div className="relative overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--panel)]/80 p-5 shadow-2xl sm:p-7">
     <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[var(--lime)]/10 blur-3xl"/>
     <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
