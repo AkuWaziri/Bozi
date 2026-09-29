@@ -41,7 +41,7 @@ export default function Home(){
   </section>
 
   <section id="quests" className="mx-auto max-w-7xl px-5 py-16 md:px-8">
-   <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--lime)]">Explore</p><h2 className="mt-2 text-3xl font-bold tracking-tight">Start with a quest</h2></div><a className="hidden text-sm font-semibold text-[var(--muted)] hover:text-white md:block" href="#">See all quests →</a></div>
+   <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--lime)]">Explore</p><h2 className="mt-2 text-3xl font-bold tracking-tight">Start with a quest</h2></div><Link href="/quests" className="shrink-0 rounded-lg px-2 py-1 text-right text-sm font-semibold text-[var(--muted)] hover:text-white">See all quests →</Link></div>
    <div className="mt-7 grid gap-4 md:grid-cols-3">{liveQuests.map(q=><Link href={"/quests/"+q.slug} key={q.id} className="group rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5 transition hover:-translate-y-1 hover:border-white/20"><div className="flex items-center justify-between"><div className="grid h-11 w-11 place-items-center rounded-xl bg-white/[.05]"><BookOpen size={18}/></div><span className="font-bold text-[var(--lime)]">+{Number(q.lesson_points||0)+Number(q.social_task_enabled?q.social_points||0:0)} pts</span></div><p className="mt-6 text-xs text-[var(--muted)]">Quest</p><h3 className="mt-1 text-lg font-bold leading-6">{q.title}</h3><p className="mt-2 line-clamp-2 text-sm text-[var(--muted)]">{q.summary||"Lesson, quiz and contribution task."}</p></Link>) }</div>
   </section>
 
