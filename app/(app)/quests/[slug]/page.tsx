@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, Coins, Loader2, LockKeyhole, Users } from "lucide-react";
-import { useEffect,useState } from "react";
+import { useEffect,useState, type ReactNode } from "react";
 import { supabase } from "../../../../lib/supabase/client";
 
 type Quest={id:string;title:string;summary:string|null;quest_type:"educational"|"x";x_action:"post"|null;x_instructions:string|null;x_max_winners:number;reward_points_enabled:boolean;reward_points:number;reward_stablecoin_enabled:boolean;reward_stablecoin_symbol:string|null;reward_stablecoin_amount:number|null};
@@ -55,4 +55,4 @@ export default function QuestDetail(){
 }
 
 function RewardCard({reward,fallback}:{reward:any;fallback:string}){return <div className="mt-8 rounded-2xl border border-[var(--lime)]/30 bg-[var(--lime)]/10 p-5"><p className="font-bold">{fallback}</p><div className="mt-3 space-y-1 text-sm">{Number(reward?.points_awarded??reward?.pointsAwarded??0)>0&&<p className="text-[var(--lime)]">+{Number(reward?.points_awarded??reward?.pointsAwarded??0)} Bozi points</p>}{Boolean(reward?.stablecoin_enabled??reward?.stablecoinEnabled)&&<p className="text-[var(--lime)]">{reward?.stablecoin_amount??reward?.stablecoinAmount} {reward?.stablecoin_symbol??reward?.stablecoinSymbol} stablecoin reward queued for onchain payout.</p>}</div></div>}
-function StateCard({children}:{children:React.ReactNode}){return <div className="mx-auto max-w-3xl px-4 py-12"><div className="flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-6 text-sm text-[var(--muted)]">{children}</div></div>}
+function StateCard({children}:{children:ReactNode}){return <div className="mx-auto max-w-3xl px-4 py-12"><div className="flex items-center gap-2 rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-6 text-sm text-[var(--muted)]">{children}</div></div>}
