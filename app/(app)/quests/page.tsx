@@ -7,6 +7,8 @@ import { supabase } from "../../../lib/supabase/client";
 
 type Quest={id:string;slug:string;title:string;summary:string|null;quest_type:"educational"|"x";x_action:"post"|null;reward_points_enabled:boolean;reward_points:number;reward_stablecoin_enabled:boolean;reward_stablecoin_symbol:string|null;reward_stablecoin_amount:number|null;quest_starts_at:string;quest_expires_at:string|null};
 
+function statusLabel(q:Quest){const now=Date.now();const start=new Date(q.quest_starts_at).getTime();const end=q.quest_expires_at?new Date(q.quest_expires_at).getTime():Infinity;if(now<start)return "Upcoming";if(now>=end)return "Expired";return "Live"}
+
 export default function Quests(){
  const [quests,setQuests]=useState<Quest[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState(false);
  useEffect(()=>{let mounted=true;(async()=>{const {data,error}=await supabase.from("bozi_quests").select("id,slug,title,summary,quest_type,x_action,reward_points_enabled,reward_points,reward_stablecoin_enabled,reward_stablecoin_symbol,reward_stablecoin_amount,quest_starts_at,quest_expires_at").eq("status","published").order("created_at",{ascending:false});if(!mounted)return;setLoading(false);if(error){setError(true);return}setQuests((data??[]) as Quest[])})();return()=>{mounted=false}},[]);
