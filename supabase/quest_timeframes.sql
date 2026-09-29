@@ -188,12 +188,18 @@ declare
 begin
   if v_user_id is null then raise exception 'Not authenticated'; end if;
 
-  select q.*, quest.*
-  into v_question, v_quest
+  select q.*
+  into v_question
   from public.bozi_questions q
-  join public.bozi_lessons l on l.id=q.lesson_id
+  where q.id=p_question_id;
+
+  if not found then raise exception 'Question not found'; end if;
+
+  select quest.*
+  into v_quest
+  from public.bozi_lessons l
   join public.bozi_quests quest on quest.id=l.quest_id
-  where q.id=p_question_id
+  where l.id=v_question.lesson_id
     and quest.status='published';
 
   if not found then raise exception 'Question not found'; end if;
