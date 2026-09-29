@@ -85,3 +85,17 @@ begin
 end; $$;
 revoke all on function public.bozi_admin_review_submission(uuid,text,text) from public;
 grant execute on function public.bozi_admin_review_submission(uuid,text,text) to authenticated;
+
+create or replace function public.bozi_admin_list_lessons(p_quest_id uuid)
+returns setof public.bozi_lessons language sql security definer set search_path=public as $$
+ select l.* from public.bozi_lessons l where public.bozi_is_admin() and l.quest_id=p_quest_id order by l.position;
+$$;
+revoke all on function public.bozi_admin_list_lessons(uuid) from public;
+grant execute on function public.bozi_admin_list_lessons(uuid) to authenticated;
+
+create or replace function public.bozi_admin_list_questions(p_lesson_id uuid)
+returns setof public.bozi_questions language sql security definer set search_path=public as $$
+ select q.* from public.bozi_questions q where public.bozi_is_admin() and q.lesson_id=p_lesson_id order by q.position;
+$$;
+revoke all on function public.bozi_admin_list_questions(uuid) from public;
+grant execute on function public.bozi_admin_list_questions(uuid) to authenticated;
