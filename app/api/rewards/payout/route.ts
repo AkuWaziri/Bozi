@@ -41,7 +41,7 @@ export async function POST(request:NextRequest){
  if(claim.payout_status==="processing")return NextResponse.json({status:"pending",message:"Another payout attempt is already processing."});
  if(!key)return NextResponse.json({status:"pending",message:"Stablecoin payout is queued for the configured payout signer."});
  if(claim.stablecoin_chain_id!==8453)return NextResponse.json({error:"Unsupported payout network."},{status:400});
- let recipient:string,tokenAddress:string;try{recipient=getAddress(claim.payout_wallet);tokenAddress=getAddress(claim.stablecoin_token_address)}catch{return NextResponse.json({error:"Invalid payout configuration."},{status:400})}
+ let recipient:Address,tokenAddress:Address;try{recipient=getAddress(claim.payout_wallet);tokenAddress=getAddress(claim.stablecoin_token_address)}catch{return NextResponse.json({error:"Invalid payout configuration."},{status:400})}
  const locked=await db.from("bozi_x_quest_claims").update({payout_status:"processing",updated_at:new Date().toISOString()}).eq("id",claimId).eq("payout_status","pending").select("id").maybeSingle();
  if(!locked.data)return NextResponse.json({status:"pending",message:"Another payout attempt is already processing."});
  try{
