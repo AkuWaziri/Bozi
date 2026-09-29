@@ -19,13 +19,6 @@ export default function GM(){
 
  useEffect(()=>{let active=true;(async()=>{const [{data:n},{data:s}]=await Promise.all([supabase.from("bozi_gm_networks").select("id,network_key,display_name,chain_id,contract_address,explorer_tx_base_url,fee_token_symbol,fee_token_address").eq("enabled",true).order("display_name"),supabase.auth.getSession()]);if(!active)return;setNetworks((n??[]) as Network[]);if(n?.length)setSelected((n as Network[]).find(x=>x.network_key==="base")??(n[0] as Network));if(!s.session)return;const {data:rows}=await supabase.from("bozi_gm_checkins").select("checkin_date").eq("user_id",s.session.user.id).eq("status","confirmed").order("checkin_date",{ascending:false}).limit(90);if(!rows?.length)return;const dates=new Set(rows.map(x=>x.checkin_date));const cursor=new Date();let count=0;while(dates.has(cursor.toISOString().slice(0,10))){count++;cursor.setUTCDate(cursor.getUTCDate()-1)}if(active)setStreak(count)})();return()=>{active=false}},[completed]);
 
- const chainFor=(key:string)=>networks.find(n=>n.network_key===key)?networksConfig(key):base;
- const networksConfig=(key:string)=>networks.length?networks.find(n=>n.network_key===key)?(networksList(key)?.chain??base):base:base;
- const networksList=(key:string)=>networks.find(n=>n.network_key===key)?networks.find(n=>n.network_key===key)?networksMap(key):null:null;
- const networksMap=(key:string)=>networksMapRaw.find(n=>n.key===key)??networksMapRaw[0];
- const networksMapRaw=networks;
- void chainFor;
-
  const chainMeta=(key:string)=>networks.find(n=>n.network_key===key)?.chain_id===8453?base:networks.find(n=>n.network_key===key)?.chain_id===1?mainnet:networks.find(n=>n.network_key===key)?.chain_id===42161?arbitrum:networks.find(n=>n.network_key===key)?.chain_id===10?optimism:networks.find(n=>n.network_key===key)?.chain_id===137?polygon:null;
 
  async function connectWallet(){if(!window.ethereum){setStatus("Install an EVM wallet such as MetaMask or Coinbase Wallet.");return}try{const a=(await window.ethereum.request({method:"eth_requestAccounts"})) as string[];if(a?.[0])setWallet(a[0].toLowerCase())}catch(e){setStatus(e instanceof Error?e.message:"Wallet connection cancelled.")}}
