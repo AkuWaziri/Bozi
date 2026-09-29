@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FilePlus2, Plus, Save, ShieldCheck, Users } from "lucide-react";
+import { FilePlus2, Plus, Save, ShieldCheck } from "lucide-react";
 import { supabase } from "../../../lib/supabase/client";
 
 type Quest = {
   id:string; slug:string; title:string; summary:string|null; status:string;
-  quest_type:"educational"|"x"; x_action:"post"|"follow"|null;
-  x_target_username:string|null; x_target_user_id:string|null; x_instructions:string|null;
+  quest_type:"educational"|"x"; x_action:"post"|null;
+  x_instructions:string|null; x_max_winners:number;
   reward_points_enabled:boolean; reward_points:number;
   reward_stablecoin_enabled:boolean; reward_stablecoin_symbol:string|null;
   reward_stablecoin_token_address:string|null; reward_stablecoin_decimals:number|null;
@@ -19,7 +19,7 @@ type Token={chain_id:number;symbol:string;token_address:string;decimals:number};
 
 const emptyQuest:Quest={
   id:"",slug:"new-quest",title:"New quest",summary:"",status:"draft",
-  quest_type:"educational",x_action:null,x_target_username:null,x_target_user_id:null,x_instructions:"",
+  quest_type:"educational",x_action:null,x_instructions:"",x_max_winners:1,
   reward_points_enabled:true,reward_points:20,reward_stablecoin_enabled:false,
   reward_stablecoin_symbol:null,reward_stablecoin_token_address:null,reward_stablecoin_decimals:null,
   reward_stablecoin_amount:null,reward_stablecoin_chain_id:null
@@ -50,9 +50,8 @@ export default function Admin(){
     const {data,error}=await supabase.rpc("bozi_admin_upsert_quest_v2",{
       p_id:selected.id||null,p_slug:selected.slug,p_title:selected.title,p_summary:selected.summary??"",
       p_quest_type:selected.quest_type,p_x_action:selected.quest_type==="x"?selected.x_action:null,
-      p_x_target_username:selected.quest_type==="x"?selected.x_target_username:null,
-      p_x_target_user_id:selected.quest_type==="x"?selected.x_target_user_id:null,
       p_x_instructions:selected.quest_type==="x"?selected.x_instructions:null,
+      p_x_max_winners:selected.quest_type==="x"?Number(selected.x_max_winners):1,
       p_reward_points_enabled:selected.reward_points_enabled,p_reward_points:Number(selected.reward_points),
       p_reward_stablecoin_enabled:selected.reward_stablecoin_enabled,
       p_reward_stablecoin_symbol:selected.reward_stablecoin_symbol,
@@ -94,20 +93,20 @@ export default function Admin(){
             <div className="grid gap-3 md:grid-cols-2">
               <Field label="Title"><Input value={selected.title} onChange={e=>setSelected({...selected,title:e.target.value})}/></Field>
               <Field label="Slug"><Input value={selected.slug} onChange={e=>setSelected({...selected,slug:e.target.value})}/></Field>
-              <Field label="Quest type"><Select value={selected.quest_type} onChange={e=>{const type=e.target.value as Quest["quest_type"];setSelected({...selected,quest_type:type,x_action:type==="x"?"post":null})}}><option value="educational">Educational Quest</option><option value="x">X Quest</option></Select></Field>
+              <Field label="Quest type"><Select value={selected.quest_type} onChange={e=>{const type=e.target.value as Quest["quest_type"];setSelected({...selected,quest_type:type,x_action:type==="x"?"post":null,x_instructions:type==="x"?selected.x_instructions:null,x_max_winners:type==="x"?selected.x_max_winners:1})}}><option value="educational">Educational Quest</option><option value="x">X Quest</option></Select></Field>
               <Field label="Status"><Select value={selected.status} onChange={e=>setSelected({...selected,status:e.target.value})}><option>draft</option><option>published</option><option>archived</option></Select></Field>
             </div>
             <Field label="Summary"><TextArea value={selected.summary??""} onChange={e=>setSelected({...selected,summary:e.target.value})}/></Field>
 
             {selected.quest_type==="x" && <div className="mt-5 rounded-2xl border border-[var(--violet)]/30 bg-[var(--violet)]/5 p-4">
-              <p className="text-xs font-bold uppercase tracking-[.14em] text-[var(--violet)]">X action</p>
+              <p className="text-xs font-bold uppercase tracking-[.14em] text-[var(--violet)]">X Post campaign</p>
               <div className="mt-3 grid gap-3 md:grid-cols-2">
-                <Field label="Action"><Select value={selected.x_action??"post"} onChange={e=>setSelected({...selected,x_action:e.target.value as Quest["x_action"]})}><option value="post">Post</option><option value="follow">Follow</option></Select></Field>
-                <Field label="Target X username"><Input placeholder="@boziquest" value={selected.x_target_username??""} onChange={e=>setSelected({...selected,x_target_username:e.target.value})}/></Field>
+                <Field label="Action"><Input value="Post" disabled/></Field>
+                <Field label="Number of winners"><Input type="number" min="1" step="1" value={selected.x_max_winners} onChange={e=>setSelected({...selected,x_max_winners:Math.max(1,Number(e.target.value)||1)})}/></Field>
               </div>
-              <Field label={selected.x_action==="follow"?"Verification target user ID (optional until resolved)":"Post requirements"}><TextArea value={selected.x_instructions??""} onChange={e=>setSelected({...selected,x_instructions:e.target.value})}/></Field>
-              {selected.x_action==="follow"&&<p className="mt-2 text-xs text-[var(--muted)]">Bozi will verify the authenticated X relationship. Do not use self-attestation.</p>}
-            </div>}
+              <Field label="Post requirements"><TextArea value={selected.x_instructions??""} onChange={e=>setSelected({...selected,x_instructions:e.target.value})}/></Field>
+              <p className="mt-2 text-xs text-[var(--muted)]">The first verified participants up to the winner limit receive the configured reward.</p>
+            </div>
 
             <div className="mt-5 rounded-2xl border border-[var(--lime)]/25 bg-[var(--lime)]/5 p-4">
               <p className="text-xs font-bold uppercase tracking-[.14em] text-[var(--lime)]">Reward configuration</p>
@@ -137,7 +136,7 @@ export default function Admin(){
         </> : <div className="rounded-2xl border border-dashed border-[var(--line)] p-10 text-sm text-[var(--muted)]">Select a quest or create a new one.</div>}
       </section>
     </div>
-    <div className="mt-5 flex items-center gap-2 text-xs text-[var(--muted)]"><ShieldCheck size={15} className="text-[var(--lime)]"/> X restrictions are permanent across X campaigns but do not block educational quests or GM Streak.</div>
+    <div className="mt-5 flex items-center gap-2 text-xs text-[var(--muted)]"><ShieldCheck size={15} className="text-[var(--lime)]"/> A deleted rewarded X post triggers a 7-day X campaign restriction. Educational quests and GM Streak remain available.</div>
   </div>;
 }
 
