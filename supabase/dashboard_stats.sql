@@ -58,11 +58,33 @@ as $$
       user_id,
       dense_rank() over (order by total_points desc)::bigint as rank
     from leaderboard
+  ),
+  confirmed_gm_dates as (
+    select distinct checkin_date
+    from public.bozi_gm_checkins
+    where user_id = (select user_id from current_user_data)
+      and status = 'confirmed'
+  ),
+  gm_streak_calc as (
+    select count(*)::bigint as gm_streak
+    from confirmed_gm_dates d
+    where d.checkin_date <= current_date
+      and not exists (
+        select 1
+        from generate_series(
+          d.checkin_date,
+          current_date,
+          interval '1 day'
+        ) missing(day)
+        where missing.day::date not in (
+          select checkin_date from confirmed_gm_dates
+        )
+      )
   )
   select
     totals.total_points,
     quest_completed.completed_quests,
-    0::bigint as gm_streak,
+    coalesce((select gm_streak from gm_streak_calc), 0)::bigint as gm_streak,
     coalesce(ranked.rank, 0)::bigint as rank
   from totals
   cross join quest_completed
