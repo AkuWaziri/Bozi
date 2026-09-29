@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Trophy, Users } from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
+import { supabase } from "../../../lib/supabase/client";
 
 type LeaderboardRow = {
   user_id: string;
