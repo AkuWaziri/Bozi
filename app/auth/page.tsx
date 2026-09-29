@@ -54,7 +54,7 @@ export default function AuthPage() {
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md items-center">
         <section className="w-full rounded-3xl border border-[var(--line)] bg-[var(--panel)] p-6 shadow-2xl md:p-8">
           <Link href="/" className="inline-flex items-center gap-3">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--lime)] text-sm font-black text-black">B</span>
+            <img src="/bozi-logo.svg" alt="Bozi" className="h-10 w-10 object-contain" />
             <span className="text-xl font-black tracking-tight">bozi</span>
           </Link>
 
