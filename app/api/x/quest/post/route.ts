@@ -20,9 +20,9 @@ export async function POST(request:NextRequest){
  const {data:user,error:userError}=await db.auth.getUser(token);if(userError||!user.user)return NextResponse.json({error:"Invalid session."},{status:401});
  const body=await request.json().catch(()=>null);const questId=typeof body?.questId==="string"?body.questId:"";const postUrl=typeof body?.postUrl==="string"?body.postUrl.trim():"";const id=postId(postUrl);
  if(!questId||!id)return NextResponse.json({error:"Enter a valid X post URL."},{status:400});
- const {data:q,error:qe}=await db.from("bozi_quests").select("id,title,summary,x_action,x_instructions,reward_points_enabled,reward_points,reward_stablecoin_enabled,reward_stablecoin_symbol,reward_stablecoin_amount,status,quest_type").eq("id",questId).eq("status","published").eq("quest_type","x").maybeSingle();
+ const {data:q,error:qe}=await db.from("bozi_quests").select("id,title,summary,x_action,x_instructions,reward_points_enabled,reward_points,reward_stablecoin_enabled,reward_stablecoin_symbol,reward_stablecoin_amount,status,quest_type,quest_starts_at,quest_expires_at").eq("id",questId).eq("status","published").eq("quest_type","x").maybeSingle();
  if(qe||!q||q.x_action!=="post")return NextResponse.json({error:"This is not an active X Post quest."},{status:400});
- const {data:p}=await db.from("bozi_profiles").select("x_user_id,wallet_address").eq("user_id",user.user.id).maybeSingle();
+ const now=Date.now();const start=new Date(q.quest_starts_at).getTime();const end=q.quest_expires_at?new Date(q.quest_expires_at).getTime():Infinity;if(now<start)return NextResponse.json({error:"This X quest has not started yet."},{status:403});if(now>=end)return NextResponse.json({error:"This X quest has expired."},{status:403});\n const {data:p}=await db.from("bozi_profiles").select("x_user_id,wallet_address").eq("user_id",user.user.id).maybeSingle();
  if(!p?.x_user_id)return NextResponse.json({error:"Connect your X account in Profile first."},{status:400});
  const xrUser=await fetch(`https://api.x.com/2/users/${p.x_user_id}?user.fields=verified,verified_type`,{headers:{Authorization:`Bearer ${bearer}`},cache:"no-store"});
  if(!xrUser.ok)return NextResponse.json({error:"X verification could not confirm your account status. Try again."},{status:503});
