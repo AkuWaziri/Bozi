@@ -27,7 +27,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     let mounted = true;
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) router.replace("/auth");
-      else if (mounted) { setSession(data.session); setCheckingAuth(false); }
+      else if (mounted) { setSession(data.session); setCheckingAuth(false); const [{data:l},{data:a}]=await Promise.all([supabase.from("bozi_points_ledger").select("points").eq("user_id",data.session.user.id),supabase.rpc("bozi_is_admin")]); if(mounted){setPoints((l??[]).reduce((s,r)=>s+Number(r.points||0),0));setIsAdmin(Boolean(a));} }
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
@@ -45,9 +45,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav className="mt-10 space-y-1">
           {nav.map((item) => <NavItem key={item.href} {...item} active={pathname === item.href || pathname.startsWith(item.href + "/")} />)}
         </nav>
+        {isAdmin && <Link href="/admin" className={`mt-6 block rounded-xl px-3 py-2.5 text-sm font-semibold ${pathname.startsWith("/admin") ? "bg-[var(--violet)]/10 text-[var(--violet)]" : "text-[var(--muted)]"}`}>Admin</Link>}
         <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-[var(--line)] bg-white/[.025] p-4">
           <p className="text-xs font-semibold text-[var(--muted)]">Bozi points</p>
-          <p className="mt-1 text-2xl font-black">—</p>
+          <p className="mt-1 text-2xl font-black">{points === null ? "—" : points.toLocaleString()}</p>
           <p className="mt-1 text-xs text-[var(--muted)]">Connect your account to begin</p>
         </div>
       </aside>
