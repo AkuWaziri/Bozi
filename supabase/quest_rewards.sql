@@ -281,3 +281,126 @@ end;
 $$;
 revoke all on function public.bozi_blacklist_x_user(text,uuid,text) from public;
 grant execute on function public.bozi_blacklist_x_user(text,uuid,text) to authenticated;
+
+
+create or replace function public.bozi_claim_x_reward(
+  p_quest_id uuid,
+  p_x_user_id text,
+  p_action text,
+  p_post_url text default null,
+  p_post_id text default null
+)
+returns table(
+  claim_id uuid,
+  points_awarded integer,
+  stablecoin_enabled boolean,
+  stablecoin_amount numeric,
+  stablecoin_symbol text,
+  payout_wallet text,
+  already_claimed boolean
+)
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_quest public.bozi_quests%rowtype;
+  v_profile public.bozi_profiles%rowtype;
+  v_claim public.bozi_x_quest_claims%rowtype;
+  v_points integer;
+  v_wallet text;
+begin
+  if v_user_id is null then raise exception 'Not authenticated'; end if;
+
+  select * into v_quest from public.bozi_quests
+  where id=p_quest_id and status='published' and quest_type='x';
+  if not found then raise exception 'X quest is not available'; end if;
+  if p_action <> v_quest.x_action then raise exception 'Invalid X action'; end if;
+
+  if exists(select 1 from public.bozi_x_participant_restrictions where x_user_id=trim(p_x_user_id) and status='blacklisted') then
+    raise exception 'This X account is permanently restricted from X campaigns';
+  end if;
+
+  select * into v_profile from public.bozi_profiles where user_id=v_user_id;
+  if not found or v_profile.x_user_id is null or v_profile.x_user_id<>trim(p_x_user_id) then
+    raise exception 'Connected X account does not match verification identity';
+  end if;
+
+  select * into v_claim from public.bozi_x_quest_claims
+  where user_id=v_user_id and quest_id=p_quest_id
+  for update;
+  if found then
+    return query select v_claim.id,v_claim.points_awarded,v_claim.stablecoin_enabled,
+      v_claim.stablecoin_amount,v_claim.stablecoin_symbol,v_claim.payout_wallet,true;
+    return;
+  end if;
+
+  v_wallet := v_profile.wallet_address;
+  if v_quest.reward_stablecoin_enabled and nullif(trim(v_wallet),'') is null then
+    raise exception 'Connect a wallet before claiming a stablecoin reward';
+  end if;
+
+  v_points := case when v_quest.reward_points_enabled then greatest(v_quest.reward_points,0) else 0 end;
+
+  insert into public.bozi_x_quest_claims(
+    user_id,quest_id,x_user_id,action,post_url,post_id,status,
+    points_awarded,stablecoin_enabled,stablecoin_symbol,stablecoin_token_address,
+    stablecoin_decimals,stablecoin_amount,payout_wallet,payout_status,verified_at,rewarded_at
+  )
+  values(
+    v_user_id,p_quest_id,trim(p_x_user_id),p_action,nullif(trim(p_post_url),''),
+    nullif(trim(p_post_id),''),'rewarded',v_points,v_quest.reward_stablecoin_enabled,
+    v_quest.reward_stablecoin_symbol,v_quest.reward_stablecoin_token_address,
+    v_quest.reward_stablecoin_decimals,v_quest.reward_stablecoin_amount,v_wallet,
+    case when v_quest.reward_stablecoin_enabled then 'pending' else 'not_required' end,
+    now(),now()
+  )
+  returning * into v_claim;
+
+  if v_points > 0 then
+    insert into public.bozi_points_ledger(user_id,source_type,source_id,points,description)
+    values(v_user_id,case when p_action='post' then 'social_post' else 'social_'||p_action end,v_claim.id,v_points,'Verified X quest reward')
+    on conflict (user_id,source_type,source_id) do nothing;
+  end if;
+
+  return query select v_claim.id,v_points,v_claim.stablecoin_enabled,
+    v_claim.stablecoin_amount,v_claim.stablecoin_symbol,v_wallet,false;
+end;
+$$;
+
+revoke all on function public.bozi_claim_x_reward(uuid,text,text,text,text) from public;
+grant execute on function public.bozi_claim_x_reward(uuid,text,text,text,text) to authenticated;
+
+create or replace function public.bozi_blacklist_x_user_internal(
+  p_x_user_id text,
+  p_source_quest_id uuid,
+  p_reason text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path=public
+as $$
+begin
+  if nullif(trim(p_x_user_id),'') is null then raise exception 'X user ID required'; end if;
+
+  insert into public.bozi_x_participant_restrictions(x_user_id,status,source_quest_id,reason)
+  values(trim(p_x_user_id),'blacklisted',p_source_quest_id,trim(p_reason))
+  on conflict (x_user_id) do update set
+    status='blacklisted',
+    source_quest_id=excluded.source_quest_id,
+    reason=excluded.reason,
+    violated_at=now(),
+    updated_at=now();
+
+  update public.bozi_x_quest_claims
+  set status='blacklisted',violated_at=now(),violation_reason=trim(p_reason),updated_at=now()
+  where x_user_id=trim(p_x_user_id) and status in ('pending','verified','rewarded');
+
+  return true;
+end;
+$$;
+
+revoke all on function public.bozi_blacklist_x_user_internal(text,uuid,text) from public;
+grant execute on function public.bozi_blacklist_x_user_internal(text,uuid,text) to authenticated;
