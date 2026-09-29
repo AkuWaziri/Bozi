@@ -7,11 +7,12 @@ import { supabase } from "../../../lib/supabase/client";
 
 type Quest = {
   id: string;
-  slug: string | null;
+  slug: string;
   title: string;
-  category: string | null;
-  difficulty: string | null;
-  description: string | null;
+  summary: string;
+  lesson_points: number;
+  social_points: number;
+  social_task_enabled: boolean;
 };
 
 export default function Quests() {
@@ -22,10 +23,11 @@ export default function Quests() {
   useEffect(() => {
     let mounted = true;
 
-    const loadQuests = async () => {
+    async function loadQuests() {
       const { data, error: queryError } = await supabase
         .from("bozi_quests")
-        .select("id, slug, title, category, difficulty, description")
+        .select("id, slug, title, summary, lesson_points, social_points, social_task_enabled")
+        .eq("status", "published")
         .order("created_at", { ascending: false });
 
       if (!mounted) return;
@@ -37,10 +39,9 @@ export default function Quests() {
       }
 
       setQuests((data ?? []) as Quest[]);
-    };
+    }
 
-    loadQuests();
-
+    void loadQuests();
     return () => {
       mounted = false;
     };
@@ -70,7 +71,7 @@ export default function Quests() {
         <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {quests.map((quest) => (
             <Link
-              href={`/quests/${quest.slug || quest.id}`}
+              href={`/quests/${quest.slug}`}
               key={quest.id}
               className="group rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5 hover:border-white/20"
             >
@@ -80,15 +81,18 @@ export default function Quests() {
                 </div>
                 <ArrowRight size={16} className="text-[var(--muted)] transition group-hover:text-[var(--lime)]" />
               </div>
-              <p className="mt-5 text-xs text-[var(--muted)]">
-                {[quest.category, quest.difficulty].filter(Boolean).join(" · ") || "Quest"}
+
+              <p className="mt-5 text-xs font-semibold text-[var(--lime)]">
+                {quest.lesson_points + (quest.social_task_enabled ? quest.social_points : 0)} points available
               </p>
               <h2 className="mt-1 text-lg font-bold">{quest.title}</h2>
               <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--muted)]">
-                {quest.description || "Open this quest to start the lesson and quiz."}
+                {quest.summary || "Open this quest to start the lesson and quiz."}
               </p>
-              <div className="mt-6 flex items-center gap-1 border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
-                <Clock3 size={13} /> Lesson + quiz
+
+              <div className="mt-6 flex items-center justify-between border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]">
+                <span className="flex items-center gap-1"><Clock3 size={13} /> Lesson + quiz</span>
+                {quest.social_task_enabled && <span>+ X task</span>}
               </div>
             </Link>
           ))}
