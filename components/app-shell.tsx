@@ -81,6 +81,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Brand />
           <nav className="mt-8 space-y-1">
             {nav.map((item) => <NavItem key={item.href} {...item} active={pathname === item.href || pathname.startsWith(item.href + "/")} onClick={() => setOpen(false)} />)}
+            {isAdmin && <Link href="/admin" onClick={() => setOpen(false)} className={`mt-4 block rounded-xl px-3 py-2.5 text-sm font-semibold ${pathname.startsWith("/admin") ? "bg-[var(--violet)]/10 text-[var(--violet)]" : "text-[var(--muted)]"}`}>Admin</Link>}
           </nav>
         </div>
       </div>}
