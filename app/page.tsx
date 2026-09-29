@@ -5,18 +5,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase/client";
 
-const quests=[
-  {title:"How stablecoins actually work",project:"Crypto fundamentals",questions:8,points:80,tag:"Beginner",icon:"◉"},
-  {title:"Inside a modern L2",project:"Ethereum ecosystem",questions:10,points:100,tag:"Intermediate",icon:"◇"},
-  {title:"DeFi liquidity, explained",project:"DeFi",questions:12,points:120,tag:"Intermediate",icon:"✦"}
-];
+
 
 export default function Home(){
  const [session, setSession] = useState<any>(null);
- const [loading, setLoading] = useState(true);
+ const [loading, setLoading] = useState(true); const [stats,setStats]=useState<any>(null); const [liveQuests,setLiveQuests]=useState<any[]>([]);
  useEffect(() => {
   let mounted = true;
-  supabase.auth.getSession().then(({ data }) => { if (mounted) { setSession(data.session); setLoading(false); } });
+  supabase.auth.getSession().then(async ({ data }) => { if (mounted) { setSession(data.session); if(data.session){ const [{data:s},{data:q}]=await Promise.all([supabase.rpc("bozi_get_dashboard_stats"),supabase.from("bozi_quests").select("id,slug,title,summary,lesson_points,social_points,social_task_enabled").eq("status","published").order("created_at",{ascending:false}).limit(3)]); setStats(Array.isArray(s)?s[0]:s); setLiveQuests(q??[]); } setLoading(false); } });
   const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
   return () => { mounted = false; listener.subscription.unsubscribe(); };
  }, []);
@@ -39,16 +35,16 @@ export default function Home(){
    <div className="relative">
     <div className="absolute -inset-8 rounded-full bg-[var(--violet)]/10 blur-3xl"/>
     <div className="relative overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--panel)] p-5 shadow-2xl">
-      <div className="flex items-center justify-between border-b border-[var(--line)] pb-5"><div><p className="text-xs uppercase tracking-[.16em] text-[var(--muted)]">Your progress</p><p className="mt-1 text-2xl font-bold">1,240 <span className="text-sm font-medium text-[var(--muted)]">pts</span></p></div><div className="rounded-xl bg-[var(--lime)]/10 p-3 text-[var(--lime)]"><Trophy size={21}/></div></div>
-      <div className="mt-5 grid grid-cols-2 gap-3"><div className="rounded-2xl border border-[var(--line)] bg-white/[.025] p-4"><Flame size={18} className="text-[var(--lime)]"/><p className="mt-3 text-2xl font-bold">7</p><p className="text-xs text-[var(--muted)]">day streak</p></div><div className="rounded-2xl border border-[var(--line)] bg-white/[.025] p-4"><BookOpen size={18} className="text-[var(--violet)]"/><p className="mt-3 text-2xl font-bold">12</p><p className="text-xs text-[var(--muted)]">quests done</p></div></div>
-      <div className="mt-3 rounded-2xl border border-[var(--line)] bg-white/[.025] p-4"><div className="flex justify-between text-xs"><span className="text-[var(--muted)]">Next rank</span><span className="font-semibold">Scholar</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full w-[72%] rounded-full bg-[var(--lime)]"/></div><p className="mt-2 text-right text-xs text-[var(--muted)]">360 pts to go</p></div>
+      <div className="flex items-center justify-between border-b border-[var(--line)] pb-5"><div><p className="text-xs uppercase tracking-[.16em] text-[var(--muted)]">Your progress</p><p className="mt-1 text-2xl font-bold">{session ? Number(stats?.total_points ?? 0).toLocaleString() : "10"} <span className="text-sm font-medium text-[var(--muted)]">pts</span></p></div><div className="rounded-xl bg-[var(--lime)]/10 p-3 text-[var(--lime)]"><Trophy size={21}/></div></div>
+      <div className="mt-5 grid grid-cols-2 gap-3"><div className="rounded-2xl border border-[var(--line)] bg-white/[.025] p-4"><Flame size={18} className="text-[var(--lime)]"/><p className="mt-3 text-2xl font-bold">{session ? stats?.gm_streak ?? 0 : "50"}</p><p className="text-xs text-[var(--muted)]">{session ? "GM streak" : "GM reward"}</p></div><div className="rounded-2xl border border-[var(--line)] bg-white/[.025] p-4"><BookOpen size={18} className="text-[var(--violet)]"/><p className="mt-3 text-2xl font-bold">{session ? stats?.completed_quests ?? 0 : "10"}</p><p className="text-xs text-[var(--muted)]">{session ? "quests done" : "quiz reward"}</p></div></div>
+      <div className="mt-3 rounded-2xl border border-[var(--line)] bg-white/[.025] p-4"><div className="flex justify-between text-xs"><span className="text-[var(--muted)]">Verified learning</span><span className="font-semibold">{session ? "Rank #" + (stats?.rank ?? "—") : "Server verified"}</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full w-[72%] rounded-full bg-[var(--lime)]"/></div><p className="mt-2 text-right text-xs text-[var(--muted)]">360 pts to go</p></div>
     </div>
    </div>
   </section>
 
   <section id="quests" className="mx-auto max-w-7xl px-5 py-16 md:px-8">
    <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--lime)]">Explore</p><h2 className="mt-2 text-3xl font-bold tracking-tight">Start with a quest</h2></div><a className="hidden text-sm font-semibold text-[var(--muted)] hover:text-white md:block" href="#">See all quests →</a></div>
-   <div className="mt-7 grid gap-4 md:grid-cols-3">{quests.map(q=><article key={q.title} className="group rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5 transition hover:-translate-y-1 hover:border-white/20"><div className="flex items-center justify-between"><div className="grid h-11 w-11 place-items-center rounded-xl bg-white/[.05] text-lg">{q.icon}</div><span className="rounded-full bg-white/[.05] px-2.5 py-1 text-[11px] text-[var(--muted)]">{q.tag}</span></div><p className="mt-6 text-xs text-[var(--muted)]">{q.project}</p><h3 className="mt-1 text-lg font-bold leading-6">{q.title}</h3><div className="mt-6 flex items-center justify-between border-t border-[var(--line)] pt-4 text-xs text-[var(--muted)]"><span>{q.questions} questions</span><span className="font-bold text-[var(--lime)]">+{q.points} pts</span></div></article>)}</div>
+   <div className="mt-7 grid gap-4 md:grid-cols-3">{liveQuests.map(q=><Link href={"/quests/"+q.slug} key={q.id} className="group rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5 transition hover:-translate-y-1 hover:border-white/20"><div className="flex items-center justify-between"><div className="grid h-11 w-11 place-items-center rounded-xl bg-white/[.05]"><BookOpen size={18}/></div><span className="font-bold text-[var(--lime)]">+{Number(q.lesson_points||0)+Number(q.social_task_enabled?q.social_points||0:0)} pts</span></div><p className="mt-6 text-xs text-[var(--muted)]">Quest</p><h3 className="mt-1 text-lg font-bold leading-6">{q.title}</h3><p className="mt-2 line-clamp-2 text-sm text-[var(--muted)]">{q.summary||"Lesson, quiz and contribution task."}</p></Link>) }</div>
   </section>
 
   <section id="how" className="border-y border-[var(--line)] bg-white/[.015]"><div className="mx-auto max-w-7xl px-5 py-20 md:px-8"><div className="max-w-xl"><p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--violet)]">Simple by design</p><h2 className="mt-2 text-3xl font-bold">Learn something. Prove it. Get rewarded.</h2></div><div className="mt-10 grid gap-4 md:grid-cols-3">{[["01","Learn","Read a focused lesson about a real crypto project or concept."],["02","Prove","Answer questions tied directly to what you just learned."],["03","Contribute","Write an original post, get it verified, and keep building your score."]].map(([n,t,d])=><div key={n} className="rounded-2xl border border-[var(--line)] p-6"><span className="text-xs font-bold text-[var(--lime)]">{n}</span><h3 className="mt-8 text-xl font-bold">{t}</h3><p className="mt-2 text-sm leading-6 text-[var(--muted)]">{d}</p></div>)}</div></div></section>
