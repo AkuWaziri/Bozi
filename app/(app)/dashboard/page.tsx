@@ -13,14 +13,56 @@ const previewQuests = [
 
 export default function Dashboard() {
   const [email, setEmail] = useState<string | null>(null);
+  const [totalPoints, setTotalPoints] = useState<number | null>(null);
+  const [pointsError, setPointsError] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (mounted) setEmail(data.session?.user.email ?? null);
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!mounted) return;
+      const user = data.session?.user;
+      setEmail(user?.email ?? null);
+      if (!user) {
+        setTotalPoints(0);
+        return;
+      }
+
+      const { data: ledger, error } = await supabase
+        .from("bozi_points_ledger")
+        .select("points")
+        .eq("user_id", user.id);
+
+      if (!mounted) return;
+      if (error) {
+        setPointsError(true);
+        setTotalPoints(null);
+        return;
+      }
+
+      setTotalPoints((ledger ?? []).reduce((sum, entry) => sum + Number(entry.points ?? 0), 0));
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setEmail(session?.user.email ?? null);
+      if (!session?.user) {
+        setTotalPoints(0);
+        setPointsError(false);
+        return;
+      }
+
+      const { data: ledger, error } = await supabase
+        .from("bozi_points_ledger")
+        .select("points")
+        .eq("user_id", session.user.id);
+
+      if (!mounted) return;
+      if (error) {
+        setPointsError(true);
+        setTotalPoints(null);
+        return;
+      }
+
+      setPointsError(false);
+      setTotalPoints((ledger ?? []).reduce((sum, entry) => sum + Number(entry.points ?? 0), 0));
     });
     return () => {
       mounted = false;
@@ -39,7 +81,7 @@ export default function Dashboard() {
     </div>
 
     <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <Stat icon={Trophy} label="Total points" value="0" note="Start earning points" />
+      <Stat icon={Trophy} label="Total points" value={totalPoints === null ? "—" : totalPoints.toLocaleString()} note={pointsError ? "Points unavailable" : totalPoints === 0 ? "Start earning points" : "Verified points earned"} />
       <Stat icon={BookOpen} label="Quests completed" value="0" note="Your progress" />
       <Stat icon={Flame} label="GM streak" value="0" note="Optional activity" />
       <Stat icon={CheckCircle2} label="Rank" value="—" note="Leaderboard" />
