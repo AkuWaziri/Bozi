@@ -10,9 +10,9 @@ import { supabase } from "../lib/supabase/client";
 
 const nav = [
   { href: "/dashboard", label: "Home", icon: Home },
+  { href: "/gm", label: "GM Streak", icon: Flame },
   { href: "/quests", label: "Quests", icon: BookOpen },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { href: "/gm", label: "GM Streak", icon: Flame },
   { href: "/profile", label: "Profile", icon: User },
 ];
 
@@ -102,7 +102,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 function Brand() {
   return <Link href="/" className="flex items-center gap-3">
     <img src="/bozi-logo.svg" alt="Bozi" className="h-10 w-10 object-contain" />
-    <span className="text-xl font-black tracking-tight">bozi</span>
+    <span className="text-xl font-black tracking-tight">Bozi</span>
   </Link>;
 }
 
