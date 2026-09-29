@@ -2,6 +2,8 @@
 
 import { BookOpen, Flame, Trophy, ArrowRight, CheckCircle2, Sparkles, Users } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase/client";
 
 const quests=[
   {title:"How stablecoins actually work",project:"Crypto fundamentals",questions:8,points:80,tag:"Beginner",icon:"◉"},
@@ -10,11 +12,20 @@ const quests=[
 ];
 
 export default function Home(){
+ const [session, setSession] = useState<any>(null);
+ const [loading, setLoading] = useState(true);
+ useEffect(() => {
+  let mounted = true;
+  supabase.auth.getSession().then(({ data }) => { if (mounted) { setSession(data.session); setLoading(false); } });
+  const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
+  return () => { mounted = false; listener.subscription.unsubscribe(); };
+ }, []);
+ const signOut = async () => { await supabase.auth.signOut(); };
  return <main className="min-h-screen">
   <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-6 md:px-8">
    <div className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--lime)] text-sm font-black text-black">B</div><span className="text-xl font-bold tracking-tight">bozi</span></div>
    <div className="hidden items-center gap-7 text-sm text-[var(--muted)] md:flex"><a href="#quests" className="hover:text-white">Quests</a><a href="#how" className="hover:text-white">How it works</a><a href="#leaderboard" className="hover:text-white">Leaderboard</a></div>
-   <Link href="/auth" className="rounded-full border border-[var(--line)] bg-white/[.04] px-4 py-2 text-sm font-semibold hover:bg-white/[.08]">Sign in</Link>
+   {!loading && session ? <div className="flex items-center gap-2"><Link href="/dashboard" className="rounded-full border border-[var(--line)] bg-white/[.04] px-4 py-2 text-sm font-semibold hover:bg-white/[.08]">Dashboard</Link><button onClick={signOut} className="rounded-full border border-[var(--line)] bg-white/[.04] px-4 py-2 text-sm font-semibold hover:bg-white/[.08]">Sign out</button></div> : <Link href="/auth" className="rounded-full border border-[var(--line)] bg-white/[.04] px-4 py-2 text-sm font-semibold hover:bg-white/[.08]">Sign in</Link>}
   </nav>
 
   <section className="mx-auto grid max-w-7xl gap-12 px-5 pb-20 pt-14 md:grid-cols-[1.15fr_.85fr] md:px-8 md:pt-24">
