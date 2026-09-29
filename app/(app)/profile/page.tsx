@@ -14,7 +14,7 @@ export default function Profile() {
 
  useEffect(() => {
   let mounted = true;
-  supabase.auth.getSession().then(({ data }) => {
+  supabase.auth.getSession().then(async ({ data }) => {
    if (mounted) setEmail(data.session?.user.email ?? null);
    if (data.session?.user) { const { data: profile } = await supabase.from("bozi_profiles").select("x_user_id,x_handle").eq("user_id", data.session.user.id).maybeSingle(); if (mounted) { setXConnected(Boolean(profile?.x_user_id)); setXHandle(profile?.x_handle ?? null); } }
   });
