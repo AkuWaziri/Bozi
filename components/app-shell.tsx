@@ -21,13 +21,26 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [session, setSession] = useState<any>(null);
+  const [points, setPoints] = useState<number | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) router.replace("/auth");
-      else if (mounted) { setSession(data.session); setCheckingAuth(false); const [{data:l},{data:a}]=await Promise.all([supabase.from("bozi_points_ledger").select("points").eq("user_id",data.session.user.id),supabase.rpc("bozi_is_admin")]); if(mounted){setPoints((l??[]).reduce((s,r)=>s+Number(r.points||0),0));setIsAdmin(Boolean(a));} }
+      else if (mounted) {
+        setSession(data.session);
+        setCheckingAuth(false);
+        const [{ data: ledger }, { data: admin }] = await Promise.all([
+          supabase.from("bozi_points_ledger").select("points").eq("user_id", data.session.user.id),
+          supabase.rpc("bozi_is_admin"),
+        ]);
+        if (mounted) {
+          setPoints((ledger ?? []).reduce((sum, row) => sum + Number(row.points || 0), 0));
+          setIsAdmin(Boolean(admin));
+        }
+      }
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
