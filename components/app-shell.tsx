@@ -101,7 +101,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 function Brand() {
   return <Link href="/" className="flex items-center gap-3">
-    <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--lime)] text-sm font-black text-black">B</span>
+    <img src="/bozi-logo.svg" alt="Bozi" className="h-10 w-10 object-contain" />
     <span className="text-xl font-black tracking-tight">bozi</span>
   </Link>;
 }
