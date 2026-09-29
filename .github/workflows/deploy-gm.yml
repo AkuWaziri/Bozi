@@ -4,20 +4,24 @@ on:
   workflow_dispatch:
     inputs:
       rpc_url:
-        description: "RPC URL for the target network"
+        description: "Base Mainnet RPC URL"
         required: true
+        default: "https://mainnet.base.org"
         type: string
       fee_token:
-        description: "ERC-20 token used for the GM fee"
+        description: "Base USDC contract address"
         required: true
+        default: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
         type: string
       fee_amount:
-        description: "Fee token base units representing the target ~$0.01 fee"
+        description: "USDC fee in base units (0.01 USDC = 10000)"
         required: true
+        default: "10000"
         type: string
       network_name:
-        description: "Human-readable network name"
+        description: "Target network"
         required: true
+        default: "Base Mainnet"
         type: string
 
 jobs:
