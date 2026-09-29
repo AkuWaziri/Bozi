@@ -40,9 +40,19 @@ export default function Home(){
    </div>
   </section>
 
-  <section id="quests" className="mx-auto max-w-7xl px-5 py-16 md:px-8">
-   <div className="flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--lime)]">Explore</p><h2 className="mt-2 text-3xl font-bold tracking-tight">Start with a quest</h2></div><Link href="/quests" className="shrink-0 rounded-lg px-2 py-1 text-right text-sm font-semibold text-[var(--muted)] hover:text-white">See all quests →</Link></div>
-   <div className="mt-7 grid gap-4 md:grid-cols-3">{liveQuests.map(q=><Link href={"/quests/"+q.slug} key={q.id} className="group rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5 transition hover:-translate-y-1 hover:border-white/20"><div className="flex items-center justify-between"><div className="grid h-11 w-11 place-items-center rounded-xl bg-white/[.05]"><BookOpen size={18}/></div><span className="font-bold text-[var(--lime)]">+{Number(q.lesson_points||0)+Number(q.social_task_enabled?q.social_points||0:0)} pts</span></div><p className="mt-6 text-xs text-[var(--muted)]">Quest</p><h3 className="mt-1 text-lg font-bold leading-6">{q.title}</h3><p className="mt-2 line-clamp-2 text-sm text-[var(--muted)]">{q.summary||"Lesson, quiz and contribution task."}</p></Link>) }</div>
+  <section id="quests" className="mx-auto max-w-7xl px-4 py-14 sm:px-5 md:px-8 md:py-16">
+   <div className="relative overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--panel)]/80 p-5 shadow-2xl sm:p-7">
+    <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[var(--lime)]/10 blur-3xl"/>
+    <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+     <div className="min-w-0">
+      <div className="inline-flex items-center gap-2 rounded-full border border-[var(--lime)]/20 bg-[var(--lime)]/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.18em] text-[var(--lime)]"><BookOpen size={13}/> Explore</div>
+      <h2 className="mt-4 text-3xl font-black leading-tight tracking-[-.03em] sm:text-4xl">Start with a quest</h2>
+      <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">Learn something useful, prove what you know, and earn points.</p>
+     </div>
+     <Link href="/quests" className="inline-flex w-fit shrink-0 items-center rounded-xl border border-[var(--line)] bg-white/[.03] px-4 py-2.5 text-sm font-semibold transition hover:border-white/20 hover:bg-white/[.06]">See all quests <span className="ml-2">→</span></Link>
+    </div>
+    <div className="relative mt-7 grid gap-3 sm:gap-4 md:grid-cols-3">{liveQuests.map(q=><Link href={"/quests/"+q.slug} key={q.id} className="group min-w-0 rounded-2xl border border-[var(--line)] bg-black/10 p-5 transition hover:-translate-y-1 hover:border-white/20"><div className="flex items-center justify-between gap-3"><div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/[.05]"><BookOpen size={18}/></div><span className="shrink-0 text-sm font-bold text-[var(--lime)]">+{Number(q.lesson_points||0)+Number(q.social_task_enabled?q.social_points||0:0)} pts</span></div><p className="mt-6 text-xs text-[var(--muted)]">Quest</p><h3 className="mt-1 break-words text-lg font-bold leading-6">{q.title}</h3><p className="mt-2 line-clamp-2 text-sm leading-5 text-[var(--muted)]">{q.summary||"Lesson, quiz and contribution task."}</p></Link>) }</div>
+   </div>
   </section>
 
   <section id="how" className="border-y border-[var(--line)] bg-white/[.015]"><div className="mx-auto max-w-7xl px-5 py-20 md:px-8"><div className="max-w-xl"><p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--violet)]">Simple by design</p><h2 className="mt-2 text-3xl font-bold">Learn something. Prove it. Get rewarded.</h2></div><div className="mt-10 grid gap-4 md:grid-cols-3">{[["01","Learn","Read a focused lesson about a real crypto project or concept."],["02","Prove","Answer questions tied directly to what you just learned."],["03","Contribute","Write an original post, get it verified, and keep building your score."]].map(([n,t,d])=><div key={n} className="rounded-2xl border border-[var(--line)] p-6"><span className="text-xs font-bold text-[var(--lime)]">{n}</span><h3 className="mt-8 text-xl font-bold">{t}</h3><p className="mt-2 text-sm leading-6 text-[var(--muted)]">{d}</p></div>)}</div></div></section>
