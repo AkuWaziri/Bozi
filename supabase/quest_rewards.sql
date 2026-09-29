@@ -412,6 +412,7 @@ returns table(
   stablecoin_enabled boolean,
   stablecoin_amount numeric,
   stablecoin_symbol text,
+  stablecoin_claim_id uuid,
   already_claimed boolean
 )
 language plpgsql
@@ -425,6 +426,7 @@ declare
   v_correct integer;
   v_points integer;
   v_already boolean;
+  v_stable_claim uuid;
 begin
   if v_user_id is null then raise exception 'Not authenticated'; end if;
   select * into v_quest from public.bozi_quests where id=p_quest_id and status='published' and quest_type='educational';
@@ -456,10 +458,11 @@ begin
   if v_quest.reward_stablecoin_enabled then
     insert into public.bozi_quest_reward_claims(user_id,quest_id,reward_type,amount_numeric,token_symbol,token_address,chain_id,status)
     values(v_user_id,p_quest_id,'stablecoin',v_quest.reward_stablecoin_amount,v_quest.reward_stablecoin_symbol,v_quest.reward_stablecoin_token_address,v_quest.reward_stablecoin_chain_id,'pending')
-    on conflict(user_id,quest_id,reward_type) do nothing;
+    on conflict(user_id,quest_id,reward_type) do nothing
+    returning id into v_stable_claim;
   end if;
 
-  return query select v_points,v_quest.reward_stablecoin_enabled,v_quest.reward_stablecoin_amount,v_quest.reward_stablecoin_symbol,v_already;
+  return query select v_points,v_quest.reward_stablecoin_enabled,v_quest.reward_stablecoin_amount,v_quest.reward_stablecoin_symbol,v_stable_claim,v_already;
 end;
 $$;
 
