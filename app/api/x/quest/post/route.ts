@@ -24,7 +24,7 @@ export async function POST(request:NextRequest){
  if(qe||!q||q.x_action!=="post")return NextResponse.json({error:"This is not an active X Post quest."},{status:400});
  const {data:p}=await db.from("bozi_profiles").select("x_user_id,wallet_address").eq("user_id",user.user.id).maybeSingle();
  if(!p?.x_user_id)return NextResponse.json({error:"Connect your X account in Profile first."},{status:400});
- const restricted=await db.rpc("bozi_is_x_restricted",{p_x_user_id:p.x_user_id});if(restricted.data)return NextResponse.json({error:"This X account is permanently restricted from X campaigns."},{status:403});
+ const restricted=await db.rpc("bozi_is_x_restricted",{p_x_user_id:p.x_user_id});if(restricted.data)return NextResponse.json({error:"This X account is temporarily restricted from X campaigns after a deleted rewarded post."},{status:403});
  const xr=await fetch(`https://api.x.com/2/tweets/${id}?tweet.fields=author_id,text,created_at`,{headers:{Authorization:`Bearer ${bearer}`},cache:"no-store"});
  if(!xr.ok)return NextResponse.json({error:"X could not verify that post."},{status:400});
  const xd=await xr.json();const tweet=xd?.data;
