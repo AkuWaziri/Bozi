@@ -20,15 +20,17 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [session, setSession] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
     let mounted = true;
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) router.replace("/auth");
-      else if (mounted) setCheckingAuth(false);
+      else if (mounted) { setSession(data.session); setCheckingAuth(false); }
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
       if (!session) router.replace("/auth");
     });
     return () => { mounted = false; listener.subscription.unsubscribe(); };
@@ -56,7 +58,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </button>
         <div className="hidden lg:block"><span className="text-sm text-[var(--muted)]">Your learning space</span></div>
         <div className="ml-auto flex items-center gap-2">
-          <Link href="/profile" className="rounded-xl border border-[var(--line)] bg-white/[.025] px-3 py-2 text-sm font-semibold hover:bg-white/[.06]">Sign in</Link>
+          <button onClick={async () => { await supabase.auth.signOut(); router.replace("/"); }} className="rounded-xl border border-[var(--line)] bg-white/[.025] px-3 py-2 text-sm font-semibold hover:bg-white/[.06]">Sign out</button>
         </div>
       </header>
 
