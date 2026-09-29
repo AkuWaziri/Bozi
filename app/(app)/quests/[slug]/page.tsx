@@ -25,11 +25,11 @@ export default function QuestDetail(){
  async function answer(){
   const q=questions[step];if(!q||!selected)return;setBusy(true);const {data,error}=await supabase.rpc("bozi_submit_quiz_answer",{p_question_id:q.id,p_selected_option_key:selected});setBusy(false);if(error){setMessage(error.message);return}const r=Array.isArray(data)?data[0]:data;setFeedback({correct:Boolean(r?.is_correct),points:Number(r?.points_awarded??0),duplicate:Boolean(r?.already_answered)})}
  async function finishEducation(){
-  setBusy(true);const {data,error}=await supabase.rpc("bozi_claim_educational_reward",{p_quest_id:quest.id});setBusy(false);if(error){setMessage(error.message);return}const r=Array.isArray(data)?data[0]:data;setReward(r);setStep(questions.length+1)}
+  setBusy(true);const {data,error}=await supabase.rpc("bozi_claim_educational_reward",{p_quest_id:quest!.id});setBusy(false);if(error){setMessage(error.message);return}const r=Array.isArray(data)?data[0]:data;setReward(r);setStep(questions.length+1)}
  async function verifyX(){
   setBusy(true);setMessage("");const {data:{session}}=await supabase.auth.getSession();if(!session){setMessage("Please sign in again.");setBusy(false);return}
   const endpoint="/api/x/quest/post";
-  const response=await fetch(endpoint,{method:"POST",headers:{Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({questId:quest.id,postUrl:xInput})});
+  const response=await fetch(endpoint,{method:"POST",headers:{Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({questId:quest!.id,postUrl:xInput})});
   const r=await response.json().catch(()=>({}));setBusy(false);if(!response.ok){setMessage(r.error||"Verification failed.");return}setReward(r);setStep(1);
  }
 
