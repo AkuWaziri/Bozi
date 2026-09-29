@@ -1,6 +1,7 @@
 "use client";
 
 import { BookOpen, Flame, Trophy, ArrowRight, CheckCircle2, Sparkles, Users } from "lucide-react";
+import Link from "next/link";
 
 const quests=[
   {title:"How stablecoins actually work",project:"Crypto fundamentals",questions:8,points:80,tag:"Beginner",icon:"◉"},
@@ -13,7 +14,7 @@ export default function Home(){
   <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-6 md:px-8">
    <div className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--lime)] text-sm font-black text-black">B</div><span className="text-xl font-bold tracking-tight">bozi</span></div>
    <div className="hidden items-center gap-7 text-sm text-[var(--muted)] md:flex"><a href="#quests" className="hover:text-white">Quests</a><a href="#how" className="hover:text-white">How it works</a><a href="#leaderboard" className="hover:text-white">Leaderboard</a></div>
-   <button className="rounded-full border border-[var(--line)] bg-white/[.04] px-4 py-2 text-sm font-semibold hover:bg-white/[.08]">Sign in</button>
+   <Link href="/auth" className="rounded-full border border-[var(--line)] bg-white/[.04] px-4 py-2 text-sm font-semibold hover:bg-white/[.08]">Sign in</Link>
   </nav>
 
   <section className="mx-auto grid max-w-7xl gap-12 px-5 pb-20 pt-14 md:grid-cols-[1.15fr_.85fr] md:px-8 md:pt-24">
@@ -21,7 +22,7 @@ export default function Home(){
     <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-white/[.035] px-3 py-1.5 text-xs font-medium text-[var(--muted)]"><Sparkles size={13} className="text-[var(--lime)]"/> Crypto learning, with a reason to come back</div>
     <h1 className="max-w-3xl text-5xl font-black leading-[.98] tracking-[-.045em] md:text-7xl">Learn crypto.<br/><span className="text-[var(--lime)]">Earn points.</span></h1>
     <p className="mt-7 max-w-xl text-base leading-7 text-[var(--muted)] md:text-lg">Bozi turns crypto education into quests. Learn how projects work, prove what you know, contribute useful content, and build your reputation.</p>
-    <div className="mt-9 flex flex-wrap gap-3"><button className="flex items-center gap-2 rounded-xl bg-[var(--lime)] px-5 py-3.5 font-bold text-black">Start learning <ArrowRight size={17}/></button><button className="rounded-xl border border-[var(--line)] px-5 py-3.5 font-semibold">View quests</button></div>
+    <div className="mt-9 flex flex-wrap gap-3"><Link href="/auth" className="flex items-center gap-2 rounded-xl bg-[var(--lime)] px-5 py-3.5 font-bold text-black">Start learning <ArrowRight size={17}/></Link><Link href="/auth" className="rounded-xl border border-[var(--line)] px-5 py-3.5 font-semibold">View quests</Link></div>
     <div className="mt-10 flex flex-wrap gap-6 text-sm text-[var(--muted)]"><span className="flex items-center gap-2"><CheckCircle2 size={15} className="text-[var(--lime)]"/> 10 pts per correct answer</span><span className="flex items-center gap-2"><CheckCircle2 size={15} className="text-[var(--cyan)]"/> 20 pts for verified X posts</span></div>
    </div>
    <div className="relative">
