@@ -12,6 +12,7 @@ type Quest = {
   reward_stablecoin_enabled:boolean; reward_stablecoin_symbol:string|null;
   reward_stablecoin_token_address:string|null; reward_stablecoin_decimals:number|null;
   reward_stablecoin_amount:number|null; reward_stablecoin_chain_id:number|null;
+  quest_starts_at:string; quest_expires_at:string|null;
 };
 type Lesson={id:string;quest_id:string;position:number;title:string;content_md:string};
 type Question={id:string;lesson_id:string;position:number;prompt:string;options:any;correct_option_key:string;explanation:string|null;points:number};
@@ -22,7 +23,8 @@ const emptyQuest:Quest={
   quest_type:"educational",x_action:null,x_instructions:"",x_max_winners:1,
   reward_points_enabled:true,reward_points:20,reward_stablecoin_enabled:false,
   reward_stablecoin_symbol:null,reward_stablecoin_token_address:null,reward_stablecoin_decimals:null,
-  reward_stablecoin_amount:null,reward_stablecoin_chain_id:null
+  reward_stablecoin_amount:null,reward_stablecoin_chain_id:null,
+  quest_starts_at:new Date().toISOString(),quest_expires_at:null
 };
 
 export default function Admin(){
@@ -59,6 +61,8 @@ export default function Admin(){
       p_reward_stablecoin_decimals:selected.reward_stablecoin_decimals,
       p_reward_stablecoin_amount:selected.reward_stablecoin_amount==null?null:Number(selected.reward_stablecoin_amount),
       p_reward_stablecoin_chain_id:selected.reward_stablecoin_chain_id,
+      p_quest_starts_at:selected.quest_starts_at,
+      p_quest_expires_at:selected.quest_expires_at,
       p_status:selected.status
     });
     setMessage(error?error.message:"Quest saved.");
@@ -97,6 +101,14 @@ export default function Admin(){
               <Field label="Status"><Select value={selected.status} onChange={e=>setSelected({...selected,status:e.target.value})}><option>draft</option><option>published</option><option>archived</option></Select></Field>
             </div>
             <Field label="Summary"><TextArea value={selected.summary??""} onChange={e=>setSelected({...selected,summary:e.target.value})}/></Field>
+            <div className="mt-4 rounded-2xl border border-[var(--line)] bg-black/5 p-4">
+              <p className="text-xs font-bold uppercase tracking-[.14em] text-[var(--muted)]">Quest timeframe</p>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <Field label="Starts"><Input type="datetime-local" value={toDateTimeLocal(selected.quest_starts_at)} onChange={e=>setSelected({...selected,quest_starts_at:e.target.value?new Date(e.target.value).toISOString():selected.quest_starts_at})}/></Field>
+                <Field label="Expires"><div className="space-y-2"><Input type="datetime-local" disabled={selected.quest_expires_at===null} value={toDateTimeLocal(selected.quest_expires_at)} onChange={e=>setSelected({...selected,quest_expires_at:e.target.value?new Date(e.target.value).toISOString():null})}/><label className="flex items-center gap-2 text-xs font-normal"><input type="checkbox" checked={selected.quest_expires_at===null} onChange={e=>setSelected({...selected,quest_expires_at:e.target.checked?null:(selected.quest_starts_at||new Date().toISOString())})}/> No expiry</label></div></Field>
+              </div>
+              <p className="mt-2 text-xs text-[var(--muted)]">Browser-local time is converted to a timezone-aware timestamp. No expiry keeps the quest open until archived.</p>
+            </div>
 
             {selected.quest_type==="x" && <div className="mt-5 rounded-2xl border border-[var(--violet)]/30 bg-[var(--violet)]/5 p-4">
               <p className="text-xs font-bold uppercase tracking-[.14em] text-[var(--violet)]">X Post campaign</p>
@@ -140,6 +152,7 @@ export default function Admin(){
   </div>;
 }
 
+function toDateTimeLocal(value:string|null){if(!value)return "";const d=new Date(value);if(Number.isNaN(d.getTime()))return "";const p=(n:number)=>String(n).padStart(2,"0");return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`}
 function Field({label,children}:{label:string;children:ReactNode}){return <label className="block text-xs font-semibold text-[var(--muted)]">{label}<div className="mt-2">{children}</div></label>}
 function Input(p:InputHTMLAttributes<HTMLInputElement>){return <input {...p} className={"w-full rounded-xl border border-[var(--line)] bg-black/10 px-3 py-2.5 text-sm outline-none "+(p.className??"")}/>}
 function TextArea(p:TextareaHTMLAttributes<HTMLTextAreaElement>){return <textarea {...p} className={"w-full rounded-xl border border-[var(--line)] bg-black/10 px-3 py-2.5 text-sm outline-none "+(p.className??"")}/>}
