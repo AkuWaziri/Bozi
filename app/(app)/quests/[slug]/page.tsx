@@ -35,7 +35,7 @@ export default function QuestDetail(){
  return <div className="mx-auto max-w-3xl px-4 py-8 pb-24 md:px-8 md:py-10">
   <Link href="/quests" className="inline-flex items-center gap-2 text-sm text-[var(--muted)]"><ArrowLeft size={15}/> Back to quests</Link>
   <div className="mt-8 rounded-3xl border border-[var(--line)] bg-[var(--panel)] p-5 md:p-8">
-   <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.14em] text-[var(--lime)]">{quest.quest_type==="x"?<Users size={15}/>:<BookOpen size={15}/>} {quest.quest_type==="x"?`X Quest · ${quest.x_action==="follow"?"Follow":"Post"}`:"Educational Quest"}</div>
+   <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[.14em] text-[var(--lime)]">{quest.quest_type==="x"?<Users size={15}/>:<BookOpen size={15}/>} {quest.quest_type==="x"?"X Quest · Post":"Educational Quest"}</div>
    <h1 className="mt-4 text-2xl font-black md:text-3xl">{quest.title}</h1><p className="mt-3 text-sm leading-7 text-[var(--muted)]">{quest.summary||"Complete the verified requirements to earn the configured reward."}</p>
    <div className="mt-5 flex flex-wrap gap-2 text-xs">{quest.reward_points_enabled&&<span className="rounded-full border border-[var(--line)] px-3 py-1.5">+{quest.reward_points} pts</span>}{quest.reward_stablecoin_enabled&&<span className="inline-flex items-center gap-1 rounded-full border border-[var(--line)] px-3 py-1.5"><Coins size={12}/>{quest.reward_stablecoin_amount} {quest.reward_stablecoin_symbol}</span>}</div>
 
@@ -47,7 +47,7 @@ export default function QuestDetail(){
 
    {quest.quest_type==="x"&&step===0&&<div className="mt-8 rounded-2xl border border-[var(--violet)]/30 bg-[var(--violet)]/5 p-5"><p className="text-sm font-bold">Publish an original X post</p><p className="mt-3 text-sm leading-7 text-[var(--muted)]">{quest.x_instructions||"Publish the required post, then submit its URL."}</p><p className="mt-3 text-xs text-[var(--muted)]">Winners: first {quest.x_max_winners} verified participant{quest.x_max_winners===1?"":"s"}.</p><input value={xInput} onChange={e=>setXInput(e.target.value)} placeholder="https://x.com/username/status/..." className="mt-4 w-full rounded-xl border border-[var(--line)] bg-black/10 px-4 py-3 text-sm outline-none"/><button onClick={verifyX} disabled={busy||!xInput.trim()} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[var(--lime)] px-4 py-3 text-sm font-bold text-black disabled:opacity-40">{busy?<><Loader2 size={16} className="animate-spin"/> Verifying…</>:"Verify post"}</button></div>}
 
-   {quest.quest_type==="x"&&step===1&&<RewardCard reward={reward} fallback="X action verified."/>}
+   {quest.quest_type==="x"&&step===1&&<RewardCard reward={reward} fallback="X post verified."/>}
    {message&&<p className="mt-4 rounded-xl border border-[var(--line)] p-3 text-sm text-red-300">{message}</p>}
    <div className="mt-8 flex items-center gap-4 text-xs text-[var(--muted)]"><span className="flex items-center gap-2"><LockKeyhole size={14}/> Server verified</span>{quest.quest_type==="x"&&<span>Deleting a rewarded post triggers a 7-day X campaign restriction.</span>}</div>
   </div>
