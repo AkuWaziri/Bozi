@@ -26,8 +26,8 @@ export default function Home(){
 
   <section className="mx-auto grid max-w-7xl gap-12 px-5 pb-20 pt-14 md:grid-cols-[1.15fr_.85fr] md:px-8 md:pt-24">
    <div>
-    <h1 className="max-w-3xl text-5xl font-black leading-[.98] tracking-[-.045em] md:text-7xl">Learn crypto.<br/><span className="text-[var(--lime)]">Earn points.</span></h1>
-    <p className="mt-7 max-w-xl text-base leading-7 text-[var(--muted)] md:text-lg">Bozi turns crypto education into quests. Learn how projects work, prove what you know, contribute useful content, and build your reputation.</p>
+    <h1 className="max-w-3xl text-5xl font-black leading-[.98] tracking-[-.045em] md:text-7xl">Learn crypto.<br/><span className="text-[var(--lime)]">Contribute. Earn points.</span></h1>
+    <p className="mt-7 max-w-xl text-base leading-7 text-[var(--muted)] md:text-lg">Bozi turns crypto education into quests. Learn how projects work, prove what you know, contribute useful content, and build your reputation. Earn Points.</p>
     <div className="mt-9 flex flex-wrap gap-3"><Link href="/auth" className="flex items-center gap-2 rounded-xl bg-[var(--lime)] px-5 py-3.5 font-bold text-black">Start learning <ArrowRight size={17}/></Link><Link href="/auth" className="rounded-xl border border-[var(--line)] px-5 py-3.5 font-semibold">View quests</Link></div>
    </div>
    <div className="relative">
