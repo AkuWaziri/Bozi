@@ -4,7 +4,9 @@ import { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BookOpen, Flame, Home, Trophy, User, ShieldCheck, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "../lib/supabase/client";
 
 const nav = [
   { href: "/dashboard", label: "Home", icon: Home },
@@ -17,6 +19,22 @@ const nav = [
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) router.replace("/auth");
+      else if (mounted) setCheckingAuth(false);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) router.replace("/auth");
+    });
+    return () => { mounted = false; listener.subscription.unsubscribe(); };
+  }, [router]);
+
+  if (checkingAuth) return <div className="grid min-h-screen place-items-center bg-[var(--bg)] text-sm text-[var(--muted)]">Loading your Bozi account…</div>;
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
