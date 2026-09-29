@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
   if (!tokenResponse.ok) return NextResponse.redirect(new URL("/profile?x=error", request.url));
 
   const tokenData = await tokenResponse.json();
-  const meResponse = await fetch("https://api.x.com/2/users/me?user.fields=username,name,profile_image_url", {
+  const meResponse = await fetch("https://api.x.com/2/users/me?user.fields=username,name,profile_image_url,verified,verified_type", {
     headers: { Authorization: `Bearer ${tokenData.access_token}` },
   });
   if (!meResponse.ok) return NextResponse.redirect(new URL("/profile?x=error", request.url));
@@ -78,6 +78,7 @@ export async function GET(request: NextRequest) {
     .update({
       x_user_id: user.id,
       x_handle: user.username ? `@${user.username}` : null,
+      x_verified: user.verified === true,
       avatar_url: user.profile_image_url ?? null,
     })
     .eq("user_id", userId);
