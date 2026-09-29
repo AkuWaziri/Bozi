@@ -118,7 +118,7 @@ export default function Admin(){
               </div>
               <Field label="Post requirements"><TextArea value={selected.x_instructions??""} onChange={e=>setSelected({...selected,x_instructions:e.target.value})}/></Field>
               <p className="mt-2 text-xs text-[var(--muted)]">The first verified participants up to the winner limit receive the configured reward.</p>
-            </div>
+            </div>}
 
             <div className="mt-5 rounded-2xl border border-[var(--lime)]/25 bg-[var(--lime)]/5 p-4">
               <p className="text-xs font-bold uppercase tracking-[.14em] text-[var(--lime)]">Reward configuration</p>
