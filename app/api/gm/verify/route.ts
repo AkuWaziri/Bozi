@@ -6,7 +6,7 @@ import {
   parseEventLogs,
   type Hex,
 } from "viem";
-import { base } from "viem/chains";
+import { base, mainnet, arbitrum, optimism, polygon } from "viem/chains";
 
 const GM_ABI = [
   {
@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json().catch(() => null);
+  const networkKey = typeof body?.networkKey === "string" ? body.networkKey.trim().toLowerCase() : "base";
   const txHash = typeof body?.txHash === "string" ? body.txHash.trim() : "";
   const walletAddress =
     typeof body?.walletAddress === "string" ? body.walletAddress.trim().toLowerCase() : "";
@@ -59,18 +60,20 @@ export async function POST(request: NextRequest) {
   const { data: network, error: networkError } = await supabase
     .from("bozi_gm_networks")
     .select("id, chain_id, contract_address, enabled")
-    .eq("network_key", "base")
+    .eq("network_key", networkKey)
     .eq("enabled", true)
     .maybeSingle();
 
-  if (networkError || !network?.contract_address || Number(network.chain_id) !== 8453) {
-    return NextResponse.json({ error: "Base GM network is not configured." }, { status: 503 });
+  if (networkError || !network?.contract_address) {
+    return NextResponse.json({ error: "Selected GM network is not configured." }, { status: 503 });
   }
 
-  const client = createPublicClient({
-    chain: base,
-    transport: http("https://mainnet.base.org"),
-  });
+  const chains = { base, ethereum: mainnet, arbitrum, optimism, polygon } as const;
+  const chain = chains[networkKey as keyof typeof chains];
+  if (!chain || Number(network.chain_id) !== chain.id) {
+    return NextResponse.json({ error: "This GM network is not supported by the verifier yet." }, { status: 400 });
+  }
+  const client = createPublicClient({ chain, transport: http(chain.rpcUrls.default.http[0]) });
 
   try {
     const hash = txHash as Hex;
