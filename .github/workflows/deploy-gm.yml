@@ -42,12 +42,19 @@ jobs:
         with:
           version: stable
 
+      - name: Install forge-std
+        run: forge install foundry-rs/forge-std --no-commit
+
       - name: Build contract
         run: forge build
 
       - name: Deploy
         run: |
-          forge script script/DeployBoziGM.s.sol:DeployBoziGM             --rpc-url "$RPC_URL"             --private-key "$PRIVATE_KEY"             --broadcast             -vvvv
+          forge script script/DeployBoziGM.s.sol:DeployBoziGM \
+            --rpc-url "$RPC_URL" \
+            --private-key "$PRIVATE_KEY" \
+            --broadcast \
+            -vvvv
 
       - name: Deployment summary
         run: |
