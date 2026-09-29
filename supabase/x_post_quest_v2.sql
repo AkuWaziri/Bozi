@@ -228,6 +228,8 @@ $$;
 revoke all on function public.bozi_admin_upsert_quest_v2(uuid,text,text,text,text,text,text,integer,boolean,integer,boolean,text,text,integer,numeric,bigint,text) from public;
 grant execute on function public.bozi_admin_upsert_quest_v2(uuid,text,text,text,text,text,text,integer,boolean,integer,boolean,text,text,integer,numeric,bigint,text) to authenticated;
 
+drop function if exists public.bozi_claim_x_reward(uuid,text,text,text,text);
+
 create or replace function public.bozi_claim_x_reward(
   p_quest_id uuid,
   p_x_user_id text,
