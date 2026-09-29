@@ -13,11 +13,12 @@ export default function Profile() {
  const [points,setPoints]=useState(0); const [activity,setActivity]=useState<Activity[]>([]); const [xLoading,setXLoading]=useState(false); const [saving,setSaving]=useState(false); const [status,setStatus]=useState("");
 
  useEffect(()=>{let mounted=true;(async()=>{const {data}=await supabase.auth.getSession();const user=data.session?.user;if(!user){router.replace("/auth");return}
-  const [{data:p},{data:l}]=await Promise.all([
+  const [{data:p},{data:l},{data:s}]=await Promise.all([
    supabase.from("bozi_profiles").select("display_name,x_user_id,x_handle,wallet_address").eq("user_id",user.id).maybeSingle(),
-   supabase.from("bozi_points_ledger").select("id,source_type,points,description,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(12)
+   supabase.from("bozi_points_ledger").select("id,source_type,points,description,created_at").eq("user_id",user.id).order("created_at",{ascending:false}).limit(12),
+   supabase.rpc("bozi_get_dashboard_stats")
   ]);
-  if(mounted){setUserId(user.id);setEmail(user.email??null);setDisplayName(p?.display_name??"");setWallet(p?.wallet_address??"");setXConnected(Boolean(p?.x_user_id));setXHandle(p?.x_handle??null);setPoints((l??[]).reduce((s,r)=>s+Number(r.points||0),0));setActivity((l??[]) as Activity[]);}
+  if(mounted){setUserId(user.id);setEmail(user.email??null);setDisplayName(p?.display_name??"");setWallet(p?.wallet_address??"");setXConnected(Boolean(p?.x_user_id));setXHandle(p?.x_handle??null);setPoints(Number((Array.isArray(s)?s[0]:s)?.total_points??0));setActivity((l??[]) as Activity[]);}
  })();return()=>{mounted=false}},[router]);
 
  const save=async()=>{if(!userId)return;setSaving(true);const {error}=await supabase.from("bozi_profiles").update({display_name:displayName.trim()||null,wallet_address:wallet.trim().toLowerCase()||null}).eq("user_id",userId);setStatus(error?error.message:"Profile saved.");setSaving(false)};
