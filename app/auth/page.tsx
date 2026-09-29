@@ -67,7 +67,7 @@ export default function AuthPage() {
             </h1>
             <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
               {mode === "signin"
-                ? "Sign in to continue your learning and points."
+                ? "Sign in to continue your learning, contribution and eran points."
                 : "Start learning quests and build your onchain learning reputation."}
             </p>
           </div>
