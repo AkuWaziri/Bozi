@@ -1,0 +1,56 @@
+name: Deploy Bozi GM Contract
+
+on:
+  workflow_dispatch:
+    inputs:
+      rpc_url:
+        description: "RPC URL for the target network"
+        required: true
+        type: string
+      fee_token:
+        description: "ERC-20 token used for the GM fee"
+        required: true
+        type: string
+      fee_amount:
+        description: "Fee token base units representing the target ~$0.01 fee"
+        required: true
+        type: string
+      network_name:
+        description: "Human-readable network name"
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      BOZI_FEE_RECIPIENT: ${{ secrets.BOZI_FEE_RECIPIENT }}
+      PRIVATE_KEY: ${{ secrets.BOZI_DEPLOYER_PRIVATE_KEY }}
+      RPC_URL: ${{ inputs.rpc_url }}
+      BOZI_FEE_TOKEN: ${{ inputs.fee_token }}
+      BOZI_FEE_AMOUNT: ${{ inputs.fee_amount }}
+      NETWORK_NAME: ${{ inputs.network_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Build contract
+        run: forge build
+
+      - name: Deploy
+        run: |
+          forge script script/DeployBoziGM.s.sol:DeployBoziGM             --rpc-url "$RPC_URL"             --private-key "$PRIVATE_KEY"             --broadcast             -vvvv
+
+      - name: Deployment summary
+        run: |
+          echo "Bozi GM deployment workflow completed for $NETWORK_NAME."
+          echo "Fee token: $BOZI_FEE_TOKEN"
+          echo "Fee amount: $BOZI_FEE_AMOUNT"
