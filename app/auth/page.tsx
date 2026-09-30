@@ -55,7 +55,7 @@ export default function AuthPage() {
         <section className="w-full rounded-3xl border border-[var(--line)] bg-[var(--panel)] p-6 shadow-2xl md:p-8">
           <Link href="/" className="inline-flex items-center gap-3">
             <img src="/bozi-logo.svg" alt="Bozi" className="h-10 w-10 object-contain" />
-            <span className="text-xl font-black tracking-tight">bozi</span>
+            <span className="text-xl font-black tracking-tight">Bozi</span>
           </Link>
 
           <div className="mt-10">
@@ -67,7 +67,7 @@ export default function AuthPage() {
             </h1>
             <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
               {mode === "signin"
-                ? "Sign in to continue your learning, contribution and eran points."
+                ? "Sign in to continue your learning, contribution and earn points."
                 : "Start learning quests and build your onchain learning reputation."}
             </p>
           </div>
