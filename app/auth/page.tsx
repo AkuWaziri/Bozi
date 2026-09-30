@@ -50,7 +50,7 @@ export default function AuthPage() {
   }
 
   return (
-    <main className="min-h-screen px-5 py-8 md:px-8"> {/* onboarding copy refreshed */}
+    <main className="min-h-screen px-5 py-8 md:px-8"> {/* onboarding copy refreshed • Vercel build refresh */}
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-md items-center">
         <section className="w-full rounded-3xl border border-[var(--line)] bg-[var(--panel)] p-6 shadow-2xl md:p-8">
           <Link href="/" className="inline-flex items-center gap-3">
