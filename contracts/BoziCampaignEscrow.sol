@@ -85,7 +85,6 @@ contract BoziCampaignEscrow {
         if (deadline <= block.timestamp) revert InvalidDeadline();
 
         uint256 fee = budget * PLATFORM_FEE_BPS / BPS_DENOMINATOR;
-        uint256 totalFunding = budget + fee;
         if (!usdc.transferFrom(msg.sender, address(this), budget)) revert InsufficientAllowanceOrBalance();
         if (fee > 0 && !usdc.transferFrom(msg.sender, feeRecipient, fee)) revert InsufficientAllowanceOrBalance();
 
@@ -102,7 +101,6 @@ contract BoziCampaignEscrow {
             refundClaimed: false
         });
         emit CampaignCreated(campaignId, msg.sender, budget, fee, rewardPerParticipant, slots, deadline);
-        totalFunding; // Documents that budget + fee is the required user allowance/funding amount.
     }
 
     function joinCampaign(uint256 campaignId) external {
