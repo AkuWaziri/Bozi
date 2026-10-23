@@ -22,7 +22,16 @@ Set these in the Vercel project:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `NEXT_PUBLIC_BOZI_ESCROW_ADDRESS` (after deploying and verifying `BoziCampaignEscrow` on Base)
 
-Never put a Supabase service-role key in the browser. The contract constructor requires the Base USDC address and the designated protocol fee recipient.
+Never put a Supabase service-role key in the browser. The contract constructor requires the Base USDC address and the designated protocol fee recipient. After reviewing the contract and tests, deploy it with Foundry using secrets stored only in your shell or CI secret store:
+
+```bash
+forge create contracts/BoziCampaignEscrow.sol:BoziCampaignEscrow \\
+  --rpc-url "$BASE_RPC_URL" \\
+  --private-key "$DEPLOYER_PRIVATE_KEY" \\
+  --constructor-args 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 "$BOZI_FEE_RECIPIENT"
+```
+
+Do not deploy until the designated fee recipient is confirmed and the deployment wallet has been checked.
 
 ## Important launch status
 The current interface is the first marketplace migration. Campaign creation is currently a draft workflow; the escrow contract is source code only until it is tested, deployed, verified, and wired to the frontend. Do not represent draft campaigns as funded or treat a database status as proof of an on-chain payment. Before production, connect campaign creation, joining, submission, review and payout actions to the escrow and verify Base receipts server-side.
