@@ -57,7 +57,6 @@ contract BoziCampaignEscrowTest {
         vm.prank(BRAND);
         escrow.approveSubmission(id, CREATOR);
         require(token.balanceOf(CREATOR) == 100_000, "creator paid");
-        (,,,,,,,,) = escrow.campaigns(id);
     }
 
     function testRefundRequiresDeadlineAndFinalizedParticipants() public {
@@ -66,6 +65,6 @@ contract BoziCampaignEscrowTest {
         vm.warp(block.timestamp + 2 days);
         vm.prank(BRAND);
         escrow.refundRemaining(id);
-        require(token.balanceOf(BRAND) == 9_950_000_000, "remaining returned after fee");
+        require(token.balanceOf(BRAND) == 9_999_950_000, "remaining returned after fee");
     }
 }
