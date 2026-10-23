@@ -118,10 +118,10 @@ create policy "creator read own campaigns" on public.campaigns for select to aut
 drop policy if exists "creator create campaign record" on public.campaigns;
 create policy "creator create campaign record" on public.campaigns for insert to authenticated with check (
   creator_user_id = (select auth.uid()) and
-  creator_wallet = lower(coalesce((select auth.jwt() -> 'user_metadata' ->> 'address'), ''))
+  creator_wallet = lower(coalesce((select auth.jwt() -> 'user_metadata' ->> 'address'), '')) and
+  status = 'upcoming' and funding_status = 'pending' and funding_tx_hash is null and escrow_campaign_id is null
 );
-drop policy if exists "creator update own campaigns" on public.campaigns;
-create policy "creator update own campaigns" on public.campaigns for update to authenticated using (creator_user_id = (select auth.uid())) with check (creator_user_id = (select auth.uid()));
+-- Campaign status and funding fields are intentionally not client-updatable. A trusted verifier must confirm Base receipts before activating a campaign.
 
 drop policy if exists "participant and creator read joins" on public.campaign_participations;
 create policy "participant and creator read joins" on public.campaign_participations for select to authenticated using (
