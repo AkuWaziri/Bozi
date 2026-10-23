@@ -1,62 +1,384 @@
 "use client";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { isSupabaseConfigured, supabase } from "../lib/supabase/client";
+import {
+  ArrowRight, ArrowUpRight, BadgeCheck, Bell, BookOpen,
+  BriefcaseBusiness, Check, ChevronDown, CircleHelp, Clock3, Compass,
+  DollarSign, ExternalLink, FileCheck2, Filter, Globe2, LayoutDashboard,
+  Menu, MessageCircle, MoreHorizontal, Plus, Search, Settings2, ShieldCheck,
+  Wallet, X, Video, Send, TrendingUp, Users
+} from "lucide-react";
 
-import { BookOpen, Flame, Trophy, ArrowRight, CheckCircle2, Sparkles, Users } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { supabase } from "../lib/supabase/client";
+declare global { interface Window { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown>; on?: (event: string, handler: (...args: unknown[]) => void) => void; removeListener?: (event: string, handler: (...args: unknown[]) => void) => void } } }
 
+type Channel = "X / Twitter" | "TikTok" | "Telegram" | "WhatsApp" | "Video" | "Blog" | "Medium" | "Other";
+type Campaign = {
+  id: string; brand: string; initials: string; category: string; title: string; description: string;
+  channel: Channel; reward: number; budget: number; slots: number; joined: number; deadline: string;
+  status: "Active" | "Upcoming" | "Ended" | "Under review" | "Completed"; accent: string; logo?: string;
+  requirements: string; createdByMe?: boolean; creatorWallet?: string; creatorEmail?: string; creatorTelegram?: string;
+};
+type Participation = { campaignId: string; walletAddress?: string; link?: string; promoLink?: string; promoDraftLink?: string; promoPost?: string; status: "Joined" | "Submitted" | "Approved" | "Rejected"; joinedAt: string };
+type NotificationPrefs = { email: string; telegram: string; slotsFilled: boolean; rewardsDistributed: boolean };
 
+const initialCampaigns: Campaign[] = [
+  { id:"c1", brand:"Base Builders", initials:"A", category:"Web3", title:"Make Base easier to understand", description:"Create a useful, original post showing how everyday payments can work on Base. Clear explanations beat hype.", channel:"X / Twitter", reward:45, budget:900, slots:20, joined:12, deadline:"Oct 28, 2026", status:"Active", accent:"lavender", requirements:"Public post, minimum 3 sentences, tag the project, no engagement farming." },
+  { id:"c2", brand:"Bloom Skin", initials:"B", category:"Beauty", title:"A routine worth sharing", description:"Share your honest skincare routine and introduce our daily hydration serum to your audience.", channel:"TikTok", reward:80, budget:1200, slots:15, joined:9, deadline:"Oct 30, 2026", status:"Active", accent:"rose", requirements:"Original video, 20–60 seconds, disclose that this is a paid collaboration." },
+  { id:"c3", brand:"The Daily Brief", initials:"D", category:"Media", title:"Explain the story behind the numbers", description:"Write a short, thoughtful article on one emerging technology trend. We value insight over word count.", channel:"Medium", reward:120, budget:1800, slots:15, joined:6, deadline:"Nov 02, 2026", status:"Active", accent:"blue", requirements:"Original article, at least 500 words, cite sources, no copied material." },
+  { id:"c4", brand:"Buildspace Hub", initials:"B", category:"Technology", title:"Show what you built this week", description:"Make a quick walkthrough of a tool, prototype, or workflow that helps builders ship faster.", channel:"Video", reward:100, budget:1500, slots:15, joined:11, deadline:"Oct 26, 2026", status:"Active", accent:"mint", requirements:"Public video with a clear walkthrough and a link to the project." },
+  { id:"c5", brand:"Chain Notes", initials:"C", category:"Web3", title:"One useful DeFi guide", description:"Turn a confusing DeFi concept into a practical beginner-friendly guide people can actually use.", channel:"Blog", reward:65, budget:650, slots:10, joined:4, deadline:"Nov 04, 2026", status:"Active", accent:"amber", requirements:"Original tutorial with clear steps, risk notes, and links to primary sources." },
+  { id:"c6", brand:"Community First", initials:"C", category:"Community", title:"Share with your Telegram community", description:"Introduce our community toolkit in a relevant Telegram group or channel you manage.", channel:"Telegram", reward:25, budget:500, slots:20, joined:14, deadline:"Oct 31, 2026", status:"Active", accent:"sky", requirements:"Post in a group you manage or have permission to promote in. No unsolicited spam." },
+  { id:"c7", brand:"Studio North", initials:"S", category:"Creative", title:"A creator's take on our new launch", description:"Create an original visual or short editorial that makes our new product memorable.", channel:"Other", reward:90, budget:900, slots:10, joined:3, deadline:"Nov 06, 2026", status:"Upcoming", accent:"peach", requirements:"Original work, clear product mention, share a public link." },
+  { id:"c8", brand:"Open Ledger", initials:"O", category:"Web3", title:"A clear thread on onchain identity", description:"Help newcomers understand portable identity and why it matters for digital communities.", channel:"X / Twitter", reward:55, budget:1100, slots:20, joined:20, deadline:"Oct 18, 2026", status:"Ended", accent:"lavender", requirements:"Original public thread, at least 4 posts." }
+];
+const navItems = [
+  { label:"Explore", icon:Compass }, { label:"My campaigns", icon:LayoutDashboard },
+  { label:"My participation", icon:FileCheck2 }, { label:"Create campaign", icon:Plus },
+  { label:"Earnings", icon:TrendingUp }, { label:"Wallet", icon:Wallet }
+];
+const channelIcons: Record<string, typeof Globe2> = {
+  "X / Twitter": Globe2, TikTok: Video, Telegram: Send, WhatsApp: MessageCircle,
+  Video: Video, Blog: BookOpen, Medium: BookOpen, Other: Globe2
+};
+const money = (n:number) => "$" + n.toLocaleString("en-US");
 
-export default function Home(){
- const [session, setSession] = useState<any>(null);
- const [loading, setLoading] = useState(true); const [stats,setStats]=useState<any>(null); const [liveQuests,setLiveQuests]=useState<any[]>([]);
- useEffect(() => {
-  let mounted = true;
-  supabase.auth.getSession().then(async ({ data }) => { if (mounted) { setSession(data.session); if(data.session){ const [{data:s},{data:q}]=await Promise.all([supabase.rpc("bozi_get_dashboard_stats"),supabase.from("bozi_quests").select("id,slug,title,summary,lesson_points,social_points,social_task_enabled").eq("status","published").order("created_at",{ascending:false}).limit(3)]); setStats(Array.isArray(s)?s[0]:s); setLiveQuests(q??[]); } setLoading(false); } });
-  const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => setSession(nextSession));
-  return () => { mounted = false; listener.subscription.unsubscribe(); };
- }, []);
- const signOut = async () => { await supabase.auth.signOut(); };
- return <main className="min-h-screen">
-  <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-6 md:px-8">
-   <Link href="/" className="flex items-center gap-3"><img src="/bozi-logo.svg" alt="Bozi" className="h-10 w-10 object-contain" /><span className="text-xl font-bold tracking-tight">Bozi</span></Link>
-   <div className="hidden items-center gap-7 text-sm text-[var(--muted)] md:flex"><a href="#quests" className="hover:text-white">Quests</a><a href="#how" className="hover:text-white">How it works</a><a href="#leaderboard" className="hover:text-white">Leaderboard</a></div>
-   {!loading && session ? <div className="flex items-center gap-2"><Link href="/dashboard" className="rounded-full border border-[var(--line)] bg-white/[.04] px-4 py-2 text-sm font-semibold hover:bg-white/[.08]">Dashboard</Link><button onClick={signOut} className="rounded-full border border-[var(--line)] bg-white/[.04] px-4 py-2 text-sm font-semibold hover:bg-white/[.08]">Sign out</button></div> : <Link href="/auth" className="rounded-full border border-[var(--line)] bg-white/[.04] px-4 py-2 text-sm font-semibold hover:bg-white/[.08]">Sign in</Link>}
-  </nav>
-
-  <section className="mx-auto grid max-w-7xl gap-12 px-5 pb-20 pt-14 md:grid-cols-[1.15fr_.85fr] md:px-8 md:pt-24">
-   <div>
-    <h1 className="max-w-3xl text-5xl font-black leading-[.98] tracking-[-.045em] md:text-7xl">Learn crypto.<br/><span className="text-[var(--lime)]">Contribute. Earn points.</span></h1>
-    <p className="mt-7 max-w-xl text-base leading-7 text-[var(--muted)] md:text-lg">Bozi turns crypto education into quests. Learn how projects work, prove what you know, contribute useful content, and build your reputation. Earn Points.</p>
-    <div className="mt-9 flex flex-wrap gap-3"><Link href="/auth" className="flex items-center gap-2 rounded-xl bg-[var(--lime)] px-5 py-3.5 font-bold text-black">Start learning <ArrowRight size={17}/></Link><Link href="/auth" className="rounded-xl border border-[var(--line)] px-5 py-3.5 font-semibold">View quests</Link></div>
-   </div>
-   <div className="relative">
-    <div className="absolute -inset-8 rounded-full bg-[var(--violet)]/10 blur-3xl"/>
-    <div className="relative overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--panel)] p-5 shadow-2xl">
-      <div className="flex items-center justify-between border-b border-[var(--line)] pb-5"><div><p className="text-xs uppercase tracking-[.16em] text-[var(--muted)]">Your progress</p><p className="mt-1 text-2xl font-bold">{session ? Number(stats?.total_points ?? 0).toLocaleString() : "10"} <span className="text-sm font-medium text-[var(--muted)]">pts</span></p></div><div className="rounded-xl bg-[var(--lime)]/10 p-3 text-[var(--lime)]"><Trophy size={21}/></div></div>
-      <div className="mt-5 grid grid-cols-2 gap-3"><div className="rounded-2xl border border-[var(--line)] bg-white/[.025] p-4"><Flame size={18} className="text-[var(--lime)]"/><p className="mt-3 text-2xl font-bold">{session ? stats?.gm_streak ?? 0 : "50"}</p><p className="text-xs text-[var(--muted)]">{session ? "GM streak" : "GM reward"}</p></div><div className="rounded-2xl border border-[var(--line)] bg-white/[.025] p-4"><BookOpen size={18} className="text-[var(--violet)]"/><p className="mt-3 text-2xl font-bold">{session ? stats?.completed_quests ?? 0 : "10"}</p><p className="text-xs text-[var(--muted)]">{session ? "quests done" : "quiz reward"}</p></div></div>
-      <div className="mt-3 rounded-2xl border border-[var(--line)] bg-white/[.025] p-4"><div className="flex justify-between text-xs"><span className="text-[var(--muted)]">Verified learning</span><span className="font-semibold">{session ? "Rank #" + (stats?.rank ?? "—") : "Server verified"}</span></div><div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10"><div className="h-full w-[72%] rounded-full bg-[var(--lime)]"/></div><p className="mt-2 text-right text-xs text-[var(--muted)]">360 pts to go</p></div>
-    </div>
-   </div>
-  </section>
-
-  <section id="quests" className="mx-auto max-w-7xl px-4 py-14 sm:px-5 md:px-8 md:py-16"> {/* responsive quest section refreshed • Vercel build refresh */}
-   <div className="relative overflow-hidden rounded-3xl border border-[var(--line)] bg-[var(--panel)]/80 p-5 shadow-2xl sm:p-7">
-    <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-[var(--lime)]/10 blur-3xl"/>
-    <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-     <div className="min-w-0">
-      <div className="inline-flex items-center gap-2 rounded-full border border-[var(--lime)]/20 bg-[var(--lime)]/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.18em] text-[var(--lime)]"><BookOpen size={13}/> Explore</div>
-      <h2 className="mt-4 text-3xl font-black leading-tight tracking-[-.03em] sm:text-4xl">Start with a quest</h2>
-      <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--muted)]">Learn something useful, prove what you know, and earn points.</p>
-     </div>
-     <Link href="/quests" className="inline-flex w-fit shrink-0 items-center rounded-xl border border-[var(--line)] bg-white/[.03] px-4 py-2.5 text-sm font-semibold transition hover:border-white/20 hover:bg-white/[.06]">See all quests <span className="ml-2">→</span></Link>
-    </div>
-    <div className="relative mt-7 grid gap-3 sm:gap-4 md:grid-cols-3">{liveQuests.map(q=><Link href={"/quests/"+q.slug} key={q.id} className="group min-w-0 rounded-2xl border border-[var(--line)] bg-black/10 p-5 transition hover:-translate-y-1 hover:border-white/20"><div className="flex items-center justify-between gap-3"><div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/[.05]"><BookOpen size={18}/></div><span className="shrink-0 text-sm font-bold text-[var(--lime)]">+{Number(q.lesson_points||0)+Number(q.social_task_enabled?q.social_points||0:0)} pts</span></div><p className="mt-6 text-xs text-[var(--muted)]">Quest</p><h3 className="mt-1 break-words text-lg font-bold leading-6">{q.title}</h3><p className="mt-2 line-clamp-2 text-sm leading-5 text-[var(--muted)]">{q.summary||"Lesson, quiz and contribution task."}</p></Link>) }</div>
-   </div>
-  </section>
-
-  <section id="how" className="border-y border-[var(--line)] bg-white/[.015]"><div className="mx-auto max-w-7xl px-5 py-20 md:px-8"><div className="max-w-xl"><p className="text-xs font-bold uppercase tracking-[.18em] text-[var(--violet)]">Simple by design</p><h2 className="mt-2 text-3xl font-bold">Learn something. Prove it. Get rewarded.</h2></div><div className="mt-10 grid gap-4 md:grid-cols-3">{[["01","Learn","Read a focused lesson about a real crypto project or concept."],["02","Prove","Answer questions tied directly to what you just learned."],["03","Contribute","Write an original post, get it verified, and keep building your score."]].map(([n,t,d])=><div key={n} className="rounded-2xl border border-[var(--line)] p-6"><span className="text-xs font-bold text-[var(--lime)]">{n}</span><h3 className="mt-8 text-xl font-bold">{t}</h3><p className="mt-2 text-sm leading-6 text-[var(--muted)]">{d}</p></div>)}</div></div></section>
-
-  <footer className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-10 text-sm text-[var(--muted)] md:flex-row md:items-center md:justify-between md:px-8"><div className="flex items-center gap-2 font-semibold text-white"><img src="/bozi-logo.svg" alt="Bozi" className="h-8 w-8 object-contain" />Bozi</div><div className="flex items-center gap-2"><Users size={14}/> Built for the crypto enthuziast and contributors.</div></footer>
- </main>
+const buildParticipantPost = (c:Campaign, wallet:string) => {
+  const seed = [...(wallet + c.id + c.title)].reduce((n,ch)=>n+ch.charCodeAt(0),0);
+  const angles = [
+    `I’m trying out a simpler way to work with brands: Bozi connects campaigns with creators, makes the brief clear, and lets you submit your work for review and reward. I just joined “${c.title}” for ${c.brand}. Find a campaign that fits your skills and join in.`,
+    `Creators shouldn’t have to guess how a campaign works. On Bozi, the brief and reward are upfront, you do the work, share your link, and get paid when it’s approved. I’ve joined “${c.title}” by ${c.brand}. Take a look at Bozi and find your next opportunity.`,
+    `A practical creator opportunity: I joined “${c.title}” from ${c.brand} on Bozi. The process is straightforward: choose a campaign, follow its brief, publish your work, and submit the link for review. Brands get promotion; creators can earn for approved work. Join us on Bozi.`,
+    `Trying Bozi: a campaign marketplace where brands can publish promotion tasks and creators can take on work with clear terms and rewards. I’m participating in “${c.title}” by ${c.brand}. If you create content, write, or build communities, explore Bozi and see what fits.`
+  ];
+  const core = angles[seed % angles.length];
+  const platformNote = c.channel === "TikTok"
+    ? " Sharing this here because short-form creators deserve clear briefs and transparent rewards."
+    : c.channel === "Telegram"
+    ? " Posting this for the community: clear tasks, visible rewards, and a simple submission process."
+    : c.channel === "WhatsApp"
+    ? " Sharing with the group in case a creator opportunity fits someone here."
+    : c.channel === "Video"
+    ? " Video intro: explain how Bozi makes brand campaigns simpler, then invite creators to explore it."
+    : c.channel === "Blog" || c.channel === "Medium"
+    ? " The key idea: make creator campaigns easier to discover, understand, complete, and get rewarded for."
+    : " If this sounds useful, check out Bozi and find a campaign that matches your skills.";
+  const closing = ["Bozi makes the campaign path easy to follow.","Clear brief. Real work. A public link for review.","More clarity for brands and creators.","A simpler route from campaign brief to creator reward."][seed % 4];
+  return `${core}${platformNote}\n\n${closing}\n\n#Bozi #CreatorEconomy #CreatorCampaigns`;
+};
+function BrandMark({ name, initials, accent="lavender", logo }: {name:string; initials:string; accent?:string; logo?:string}) {
+  return <div className={`brand-mark ${accent} ${logo?"has-logo":""}`} aria-label={name}>{logo?<img src={logo} alt={`${name} logo`}/>:initials}</div>;
 }
+function App() {
+  const [page, setPage] = useState("Explore");
+  const [walletAddress, setWalletAddress] = useState(() => { try { return localStorage.getItem("bozi-wallet-address") || ""; } catch { return ""; } });
+  const [walletChainId, setWalletChainId] = useState(() => { try { return localStorage.getItem("bozi-wallet-chain") || ""; } catch { return ""; } });
+  const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
+    if (isSupabaseConfigured) return [];
+    try { const saved = localStorage.getItem("bozi-campaigns"); return saved ? [...JSON.parse(saved), ...initialCampaigns] : initialCampaigns; } catch { return initialCampaigns; }
+  });
+  const [participations, setParticipations] = useState<Participation[]>(() => {
+    try { return JSON.parse(localStorage.getItem("bozi-participations") || "[]"); } catch { return []; }
+  });
+  const [query, setQuery] = useState("");
+  const [channel, setChannel] = useState("All channels");
+  const [category, setCategory] = useState("All categories");
+  const [sort, setSort] = useState("Recommended");
+  const [showCreate, setShowCreate] = useState(false);
+  const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Campaign | null>(null);
+  const [joinedPostPopup, setJoinedPostPopup] = useState<{campaign: Campaign; post: string} | null>(null);
+  const [submissionLink, setSubmissionLink] = useState("");
+  const [submissionPromoLink, setSubmissionPromoLink] = useState("");
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>(() => { try { return { email:"", telegram:"", slotsFilled:true, rewardsDistributed:true, ...JSON.parse(localStorage.getItem("bozi-notification-prefs") || "{}") }; } catch { return {email:"",telegram:"",slotsFilled:true,rewardsDistributed:true}; } });
+  const [createForm, setCreateForm] = useState({brand:"", title:"", description:"", category:"Web3", channel:"X / Twitter" as Channel, reward:"50", slots:"10", deadline:"2026-11-05", requirements:"Original work. Include a public link and follow the campaign brief.",logo:"",creatorEmail:"",creatorTelegram:""});
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) {
+      try { localStorage.setItem("bozi-campaigns", JSON.stringify(campaigns.filter(c => c.createdByMe))); } catch { /* storage may be unavailable */ }
+      return;
+    }
+    let cancelled = false;
+    const loadCampaigns = async () => {
+      if (!supabase) return;
+      const { data, error } = await supabase.from("campaigns").select("*").order("created_at", { ascending: false });
+      if (cancelled) return;
+      if (error) {
+        setNotice("Bozi could not load campaigns from the shared database. Refresh the page or check your Supabase setup.");
+        return;
+      }
+      const rows = (data || []).map((row: any): Campaign => ({
+        id: row.id,
+        brand: row.brand_name,
+        initials: row.brand_initials || row.brand_name?.slice(0,1) || "P",
+        logo: row.brand_logo_url || undefined,
+        category: row.category,
+        title: row.title,
+        description: row.description,
+        channel: row.channel as Channel,
+        reward: Number(row.reward_amount),
+        budget: Number(row.budget_amount),
+        slots: Number(row.slots_total),
+        joined: Number(row.joined_count),
+        deadline: new Date(row.deadline).toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+        status: row.status === "active" ? "Active" : row.status === "ended" ? "Ended" : row.status === "under_review" ? "Under review" : row.status === "completed" ? "Completed" : "Upcoming",
+        accent: "lavender",
+        requirements: row.requirements,
+        creatorWallet: row.creator_wallet,
+        createdByMe: Boolean(walletAddress && row.creator_wallet?.toLowerCase() === walletAddress.toLowerCase())
+      }));
+      setCampaigns(rows);
+    };
+    void loadCampaigns();
+    return () => { cancelled = true; };
+  }, [walletAddress]);
+  useEffect(() => { try { localStorage.setItem("bozi-participations", JSON.stringify(participations)); } catch { /* storage may be unavailable */ } }, [participations]);
+  useEffect(() => { try { localStorage.setItem("bozi-notification-prefs", JSON.stringify(notificationPrefs)); } catch { /* storage may be unavailable */ } }, [notificationPrefs]);
+  const myParticipations = participations.filter(p => Boolean(walletAddress) && p.walletAddress?.toLowerCase() === walletAddress.toLowerCase());
+  const joinedIds = new Set(myParticipations.map(p => p.campaignId));
+  const ownsCampaign = (c: Campaign) => Boolean(walletAddress && c.creatorWallet && c.creatorWallet.toLowerCase() === walletAddress.toLowerCase());
+  const filtered = useMemo(() => {
+    let list = campaigns.filter(c => (page === "My campaigns" ? ownsCampaign(c) : page === "My participation" ? joinedIds.has(c.id) : true));
+    if (page === "Explore") list = list.filter(c => !ownsCampaign(c));
+    if (query.trim()) { const q=query.toLowerCase(); list=list.filter(c => [c.title,c.brand,c.description,c.category,c.channel].some(s=>s.toLowerCase().includes(q))); }
+    if (channel !== "All channels") list=list.filter(c=>c.channel===channel);
+    if (category !== "All categories") list=list.filter(c=>c.category===category);
+    if (sort==="Highest reward") list=[...list].sort((a,b)=>b.reward-a.reward);
+    if (sort==="Ending soon") list=[...list].sort((a,b)=>new Date(a.deadline).getTime()-new Date(b.deadline).getTime());
+    return list;
+  }, [campaigns, page, query, channel, category, sort, participations, walletAddress]);
+  const activeCount = campaigns.filter(c=>c.status==="Active").length;
+  const setPageTo = (label:string) => { setMobileOpen(false); if(label==="Create campaign") { setShowCreate(true); return; } setPage(label); };
+  const disconnectWallet = async () => {
+    if (supabase) {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        setNotice("Bozi could not end your account session. Please try again.");
+        return;
+      }
+    }
+    setWalletAddress("");
+    setWalletChainId("");
+    try {
+      localStorage.removeItem("bozi-wallet-address");
+      localStorage.removeItem("bozi-wallet-chain");
+    } catch { /* local storage may be unavailable */ }
+    setNotice("Wallet disconnected from Bozi.");
+  };
+  useEffect(() => {
+    const provider = window.ethereum;
+    if (!provider) return;
+    const syncAccounts = (...args: unknown[]) => {
+      const accounts = args[0];
+      const account = Array.isArray(accounts) && typeof accounts[0] === "string" ? accounts[0] : "";
+      setWalletAddress(account);
+      try {
+        if (account) localStorage.setItem("bozi-wallet-address", account);
+        else localStorage.removeItem("bozi-wallet-address");
+      } catch { /* local storage may be unavailable */ }
+    };
+    const syncChain = (...args: unknown[]) => {
+      const chain = typeof args[0] === "string" ? args[0].toLowerCase() : "";
+      setWalletChainId(chain);
+      try {
+        if (chain) localStorage.setItem("bozi-wallet-chain", chain);
+        else localStorage.removeItem("bozi-wallet-chain");
+      } catch { /* local storage may be unavailable */ }
+    };
+    provider.on?.("accountsChanged", syncAccounts);
+    provider.on?.("chainChanged", syncChain);
+    // Refresh cached UI state from the active provider on load/reload.
+    void provider.request({ method: "eth_accounts" }).then(accounts => {
+      if (Array.isArray(accounts)) syncAccounts(accounts);
+    }).catch(() => {});
+    void provider.request({ method: "eth_chainId" }).then(chain => {
+      if (typeof chain === "string") syncChain(chain);
+    }).catch(() => {});
+    return () => {
+      provider.removeListener?.("accountsChanged", syncAccounts);
+      provider.removeListener?.("chainChanged", syncChain);
+    };
+  }, []);
+  const connectWallet = async () => {
+    if (!window.ethereum) { setNotice("No browser wallet detected. Install a Base-compatible wallet and try again."); return; }
+    try {
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      const chain = await window.ethereum.request({ method: "eth_chainId" });
+      const account = Array.isArray(accounts) ? accounts[0] : "";
+      if (typeof account !== "string" || !account) { setNotice("Wallet did not return an account."); return; }
+      const chainId = typeof chain === "string" ? chain.toLowerCase() : "";
+      if (chainId !== "0x2105") {
+        setWalletAddress(account); setWalletChainId(chainId);
+        localStorage.setItem("bozi-wallet-address", account);
+        localStorage.setItem("bozi-wallet-chain", chainId);
+        setNotice("Wallet connected, but it is not on Base Mainnet (Chain ID 8453). Switch networks before continuing.");
+        return;
+      }
+      if (isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase.auth.signInWithWeb3({
+          chain: "ethereum",
+          statement: "Sign in to Bozi to join creator campaigns and manage campaign submissions."
+        });
+        if (error || !data.user || !data.session) {
+          setNotice(error?.message ? "Wallet sign-in failed. Check that Ethereum Web3 sign-in is enabled in Supabase and try again." : "Wallet sign-in did not create a session. Please try again.");
+          return;
+        }
+        const signedInAddress = account.toLowerCase();
+        const metadataAddress = String(
+          data.user.user_metadata?.address ||
+          data.user.user_metadata?.wallet_address ||
+          data.user.identities?.find(identity => identity.provider === "web3")?.identity_data?.address ||
+          signedInAddress
+        ).toLowerCase();
+        if (metadataAddress !== signedInAddress) {
+          await supabase.auth.signOut();
+          setNotice("The authenticated wallet did not match the connected wallet. Reconnect and try again.");
+          return;
+        }
+        const { error: profileError } = await supabase.from("profiles").upsert({
+          id: data.user.id,
+          wallet_address: signedInAddress
+        }, { onConflict: "id" });
+        if (profileError) {
+          setNotice("Wallet verified, but Bozi could not save your profile. Check that the database migration completed and try again.");
+          return;
+        }
+        setWalletAddress(account); setWalletChainId(chainId);
+        localStorage.setItem("bozi-wallet-address", account);
+        localStorage.setItem("bozi-wallet-chain", chainId);
+        setNotice("Wallet verified. You are signed in to Bozi on Base Mainnet.");
+      } else {
+        setWalletAddress(account); setWalletChainId(chainId);
+        localStorage.setItem("bozi-wallet-address", account);
+        localStorage.setItem("bozi-wallet-chain", chainId);
+        setNotice("Wallet connected, but Supabase is not configured. Database-backed features remain unavailable.");
+      }
+    } catch {
+      setNotice("Wallet connection or sign-in was cancelled or failed. No funds were moved.");
+    }
+  };
+  const joinCampaign = (c:Campaign) => {
+    if(!walletAddress) { setNotice("Connect your Base wallet first. Your wallet address is recorded as the participant identity."); return; }
+    if(walletChainId!=="0x2105") { setNotice("Switch your wallet to Base Mainnet (Chain ID 8453) before joining."); return; }
+    if(c.status!=="Active") { setNotice("This campaign is not accepting participants."); return; }
+    if(new Date(c.deadline+" 23:59:59").getTime() < Date.now()) { setNotice("The deadline has passed. This campaign is closed."); return; }
+    if(c.joined>=c.slots) { setNotice("All creator slots are filled. This campaign is closed to new participants."); return; }
+    if(ownsCampaign(c)) { setNotice("Campaign creators cannot join their own campaigns as participants."); return; }
+    if(joinedIds.has(c.id)) { setNotice("You have already joined this campaign. Each profile can participate only once."); return; }
+    const nextJoined = c.joined + 1;
+    const promoPost = buildParticipantPost(c,walletAddress);
+    setParticipations(p=>[...p,{campaignId:c.id,walletAddress,promoPost,status:"Joined",joinedAt:new Date().toISOString()}]);
+    setCampaigns(cs=>cs.map(x=>x.id===c.id?{...x,joined:Math.min(x.slots,nextJoined)}:x));
+    setSelected(null); setJoinedPostPopup({campaign:c,post:promoPost}); setNotice(nextJoined>=c.slots ? "Campaign joined. All slots are now filled; no one else can join." : "Campaign joined successfully. Your one-time Bozi promotion post is ready."); setPage("My participation");
+  };
+  const submitLink = () => {
+    if(!selected) return;
+    const p=participations.find(x=>x.campaignId===selected.id && x.walletAddress?.toLowerCase()===walletAddress.toLowerCase());
+    if(!p || p.status!=="Joined") { setNotice("A submission has already been recorded for this campaign."); return; }
+    if(selected.status!=="Active" || new Date(selected.deadline+" 23:59:59").getTime() < Date.now()) { setNotice("This campaign has closed to new submissions."); return; }
+    const promoToSubmit = submissionPromoLink || p.promoDraftLink || "";
+    try {
+      for (const value of [promoToSubmit, submissionLink]) {
+        const u = new URL(value);
+        if(!["http:","https:"].includes(u.protocol)) throw new Error();
+      }
+    } catch { setNotice("Enter valid public URLs for both the Bozi post and campaign work, beginning with https://"); return; }
+    setParticipations(ps=>ps.map(x=>x.campaignId===selected.id && x.walletAddress?.toLowerCase()===walletAddress.toLowerCase()?{...x,promoLink:promoToSubmit,link:submissionLink,status:"Submitted"}:x));
+    setSelected(null); setSubmissionLink(""); setSubmissionPromoLink(""); setNotice("Both links were submitted. The Bozi post link and campaign work link are locked and cannot be replaced, even if the review is rejected.");
+  };
+  const createCampaign = async (e:FormEvent) => {
+    e.preventDefault();
+    if (!walletAddress || walletChainId !== "0x2105") { setNotice("Connect the creator wallet on Base Mainnet before creating or editing a campaign."); return; }
+    if (editingCampaignId) {
+      const existing = campaigns.find(c => c.id === editingCampaignId);
+      if (!existing || !ownsCampaign(existing)) { setNotice("Only the wallet that created this campaign can edit it."); setShowCreate(false); setEditingCampaignId(null); return; }
+      if (existing.joined > 0 && (Number(createForm.reward) * Number(createForm.slots) < existing.reward * existing.joined || Number(createForm.slots) < existing.joined)) { setNotice("You cannot reduce the budget or slots below commitments already made to participants."); return; }
+      const reward = Number(createForm.reward), slots = Number(createForm.slots);
+      if (!createForm.brand.trim() || !createForm.title.trim() || !Number.isFinite(reward) || reward <= 0 || !Number.isInteger(slots) || slots < 1) { setNotice("Complete all required fields with a valid reward and number of slots."); return; }
+      const updated: Campaign = {...existing, brand:createForm.brand.trim(), initials:createForm.brand.trim().slice(0,1).toUpperCase(), logo:createForm.logo||undefined, category:createForm.category, title:createForm.title.trim(), description:createForm.description.trim(), channel:createForm.channel, reward, budget:reward*slots, slots, deadline:new Date(createForm.deadline+"T23:59:59").toLocaleDateString("en-US",{month:"short",day:"2-digit",year:"numeric"}), requirements:createForm.requirements, creatorEmail:createForm.creatorEmail.trim()||undefined, creatorTelegram:createForm.creatorTelegram.trim().replace(/^@/,"")||undefined};
+      setCampaigns(cs=>cs.map(c=>c.id===editingCampaignId?updated:c)); setShowCreate(false); setEditingCampaignId(null); setPage("My campaigns"); setNotice("Campaign updated by its creator. Changes are saved in this browser only.");
+      return;
+    }
+    const reward=Number(createForm.reward), slots=Number(createForm.slots);
+    if(!createForm.brand.trim() || !createForm.title.trim() || !Number.isFinite(reward) || reward<=0 || !Number.isInteger(slots) || slots<1) { setNotice("Complete all required fields with a valid reward and number of slots."); return; }
+    if(createForm.creatorEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createForm.creatorEmail.trim())) { setNotice("Enter a valid creator notification email or leave it blank."); return; }
+    let campaign:Campaign={id:"local-"+Date.now(),brand:createForm.brand.trim(),initials:createForm.brand.trim().slice(0,1).toUpperCase(),logo:createForm.logo||undefined,category:createForm.category,title:createForm.title.trim(),description:createForm.description.trim(),channel:createForm.channel,reward,budget:reward*slots,slots,joined:0,deadline:new Date(createForm.deadline+"T23:59:59").toLocaleDateString("en-US",{month:"short",day:"2-digit",year:"numeric"}),status:"Upcoming",accent:["lavender","rose","blue","mint","amber","sky"][campaigns.length%6],requirements:createForm.requirements,creatorEmail:createForm.creatorEmail.trim()||undefined,creatorTelegram:createForm.creatorTelegram.trim().replace(/^@/,"")||undefined,creatorWallet:walletAddress,createdByMe:true};
+    if (isSupabaseConfigured && supabase) {
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) { setNotice("Sign in with your Base wallet before saving a shared campaign draft."); return; }
+      const deadline = new Date(createForm.deadline + "T23:59:59.000Z").toISOString();
+      const budget = reward * slots;
+      const { data, error } = await supabase.from("campaigns").insert({
+        creator_user_id: authData.user.id,
+        creator_wallet: walletAddress.toLowerCase(),
+        brand_name: createForm.brand.trim(),
+        brand_initials: createForm.brand.trim().slice(0,1).toUpperCase(),
+        category: createForm.category,
+        title: createForm.title.trim(),
+        description: createForm.description.trim(),
+        channel: createForm.channel,
+        reward_amount: reward,
+        budget_amount: budget,
+        platform_fee_amount: budget * 0.05,
+        slots_total: slots,
+        deadline,
+        status: "upcoming",
+        requirements: createForm.requirements,
+        funding_status: "pending"
+      }).select("*").single();
+      if (error || !data) {
+        setNotice("Campaign draft was not saved to the shared database. Check your wallet sign-in and database policies, then try again.");
+        return;
+      }
+      campaign = {...campaign, id:data.id, joined:Number(data.joined_count), status:"Upcoming"};
+      if (createForm.creatorEmail.trim() || createForm.creatorTelegram.trim()) {
+        const { error: profileError } = await supabase.from("profiles").upsert({
+          id: authData.user.id,
+          wallet_address: walletAddress.toLowerCase(),
+          email: createForm.creatorEmail.trim() || null,
+          telegram_username: createForm.creatorTelegram.trim().replace(/^@/,"") || null
+        }, { onConflict:"id" });
+        if (profileError) setNotice("Campaign draft saved, but notification contact details could not be saved.");
+      }
+    }
+    setCampaigns(cs=>[campaign,...cs]); setShowCreate(false); setPage("My campaigns");
+    setNotice(isSupabaseConfigured ? "Campaign draft saved to Bozi. It is not public or joinable until Base escrow funding is confirmed." : "Campaign draft created locally. Configure Supabase to share it across devices.");
+    setCreateForm({brand:"",title:"",description:"",category:"Web3",channel:"X / Twitter",reward:"50",slots:"10",deadline:"2026-11-05",requirements:"Original work. Include a public link and follow the campaign brief.",logo:"",creatorEmail:"",creatorTelegram:""});
+  };
+  return <div className="app-shell">
+    <aside className={`sidebar ${mobileOpen?"sidebar-open":""}`}>
+      <button className="brand-lockup" onClick={()=>setPageTo("Explore")} aria-label="Bozi home"><span className="brand-logo" src="/bozi-logo.svg" alt="" /><span className="brand-name">bozi</span></button>
+      <div className="workspace-label">WORKSPACE <ChevronDown size={13}/></div>
+      <div className="nav-list">{navItems.map(item=>{const Icon=item.icon; return <button key={item.label} className={`nav-item ${page===item.label?"selected":""}`} onClick={()=>setPageTo(item.label)}><Icon size={18} strokeWidth={1.8}/><span>{item.label}</span>{item.label==="My participation"&&participations.length>0&&<span className="nav-count">{participations.length}</span>}{item.label==="Create campaign"&&<span className="nav-plus"><Plus size={13}/></span>}</button>;})}<a className="nav-item muted-nav" href="https://t.me/Extraholds" target="_blank" rel="noopener noreferrer"><CircleHelp size={18}/><span>Help &amp; support</span><ExternalLink className="support-link-icon" size={13}/></a></div>
+      <div className="sidebar-bottom">
+        <div className="profile-row"><div className="avatar">G</div><div className="profile-copy"><strong>{walletAddress?`${walletAddress.slice(0,6)}…${walletAddress.slice(-4)}`:"Guest profile"}</strong><span>{walletAddress?walletChainId==="0x2105"?"Base Mainnet connected":"Switch to Base Mainnet":"Connect wallet to continue"}</span></div><MoreHorizontal size={19}/></div>
+      </div>
+    </aside>
+    {mobileOpen&&<button className="mobile-scrim" onClick={()=>setMobileOpen(false)} aria-label="Close menu"/>}
+    <main className="main-area">
+      <header className="topbar"><button className="mobile-menu" onClick={()=>setMobileOpen(v=>!v)} aria-label={mobileOpen?"Close menu":"Open menu"}>{mobileOpen?<X size={22}/>:<Menu size={22}/>}</button><button className="brand-lockup mobile-topbar-brand" onClick={()=>setPageTo("Explore")} aria-label="Bozi home"><span className="brand-logo" src="/bozi-logo.svg" alt="" /><span className="brand-name">bozi</span></button><div className="breadcrumbs"><span>Workspace</span><span className="crumb-slash">/</span><strong>{page}</strong></div><div className="top-actions"><span className="network-pill"><span className="network-dot"/><span className="network-label-desktop">Base network</span><span className="network-label-mobile"><strong>Arc.</strong> Network</span></span><button className="icon-button" onClick={()=>setNotice("You\u0027re all caught up.")} aria-label="Notifications"><Bell size={18}/><i/></button><button className={`wallet-button ${walletAddress?"wallet-connected":""}`} onClick={walletAddress?disconnectWallet:connectWallet} title={walletAddress?"Disconnect wallet":"Connect wallet"} aria-label={walletAddress?"Disconnect wallet":"Connect wallet"}><Wallet size={16}/>{walletAddress?`${walletAddress.slice(0,6)}…${walletAddress.slice(-4)}`:"Connect wallet"}{walletAddress&&<span className="wallet-disconnect-label">Disconnect</span>}</button></div></header>
+      <div className="page-content">
+        {page==="Explore" ? <>
+          <section className="welcome-row"><div><h1>Good work deserves<br className="desktop-break"/> <span>good rewards.</span></h1><p className="welcome-copy">Discover paid campaigns from brands. Create something valuable, share your work, get rewarded.</p><div className="hero-actions"><button className="primary-button" onClick={()=>setShowCreate(true)}><Plus size={17}/> Create a campaign</button></div></div><div className="hero-art" aria-hidden="true"><div className="art-orbit orbit-one"/><div className="art-orbit orbit-two"/><div className="art-core"><span>p.</span></div><div className="float-card float-top"><span className="float-check"><Check size={13}/></span><span><b>Work approved</b><small>Reward unlocked</small></span></div><div className="float-card float-bottom"><div className="tiny-avatar">B</div><span><b>New opportunity</b><small>Up to $120 per task</small></span></div><div className="art-star star-one">✳</div><div className="art-star star-two">✳</div></div></section>
+          <section className="stats-row"><div className="stat-card"><div className="stat-icon purple-icon"><BriefcaseBusiness size={17}/></div><div><span>Open campaigns</span><strong>{activeCount}</strong></div><small className="stat-note">Across all categories</small></div><div className="stat-card"><div className="stat-icon green-icon"><DollarSign size={17}/></div><div><span>Rewards available</span><strong>{money(campaigns.filter(c=>c.status==="Active"&&!c.createdByMe).reduce((s,c)=>s+c.reward*Math.max(0,c.slots-c.joined),0))}</strong></div><small className="stat-note">Potential creator earnings</small></div><div className="stat-card"><div className="stat-icon blue-icon"><Users size={17}/></div><div><span>Your participation</span><strong>{participations.length.toString().padStart(2,"0")}</strong></div><small className="stat-note">Campaigns joined</small></div></section>
+          <section className="campaign-section"><div className="section-heading"><div><div className="section-kicker">FIND YOUR NEXT BRIEF</div><h2>Explore campaigns <span className="count-chip">{filtered.length}</span></h2></div><button className="view-link" onClick={()=>setSort(sort==="Recommended"?"Highest reward":"Recommended")}>{sort==="Recommended"?"Sort by reward":"Recommended order"} <ArrowUpRight size={15}/></button></div>
+          <div className="filter-bar"><div className="search-box"><Search size={17}/><input aria-label="Search campaigns" placeholder="Search campaigns, brands, or keywords..." value={query} onChange={e=>setQuery(e.target.value)}/>{query&&<button onClick={()=>setQuery("")} aria-label="Clear search"><X size={14}/></button>}</div><button className={`filter-button ${showFilters?"filter-active":""}`} onClick={()=>setShowFilters(v=>!v)}><Filter size={15}/> Filters <ChevronDown size={14}/></button><div className="sort-select"><Settings2 size={15}/><select value={sort} onChange={e=>setSort(e.target.value)} aria-label="Sort campaigns"><option>Recommended</option><option>Highest reward</option><option>Ending soon</option></select></div></div>
+          {showFilters&&<div className="expanded-filters"><label>Channel<select value={channel} onChange={e=>setChannel(e.target.value)}><option>All channels</option>{["X / Twitter","TikTok","Telegram","WhatsApp","Video","Blog","Medium","Other"].map(x=><option key={x}>{x}</option>)}</select></label><label>Category<select value={category} onChange={e=>setCategory(e.target.value)}><option>All categories</option>{["Web3","Beauty","Media","Technology","Community","Creative"].map(x=><option key={x}>{x}</option>)}</select></label><button className="clear-filters" onClick={()=>{setChannel("All channels");setCategory("All categories");setQuery("");}}>Clear all</button></div>}
+          <div className="category-chips">{["All categories","Web3","Beauty","Technology","Media","Creative","Community"].map(c=><button key={c} className={category===c?"chip-active":""} onClick={()=>setCategory(c)}>{c}</button>)}</div>
+          {filtered.length===0?<div className="empty-state"><Search size={25}/><h3>No campaigns found</h3><p>Try another search or clear your filters.</p><button className="secondary-button" onClick={()=>{setQuery("");setChannel("All channels");setCategory("All categories");}}>Clear filters</button></div>:<div className="campaign-grid">{filtered.map(c=>{const Icon=channelIcons[c.channel]||Globe2; const joined=joinedIds.has(c.id); const p=myParticipations.find(x=>x.campaignId===c.id); return <article className={`campaign-card campaign-${c.accent}`} key={c.id}><div className="card-topline"><div className="brand-info"><BrandMark name={c.brand} initials={c.initials} accent={c.accent} logo={c.logo}/><div><strong>{c.brand}</strong><span>{c.category}</span></div></div><button className="dots-button" onClick={()=>setNotice("Campaigns should be reviewed carefully before joining. Read the requirements and disclosure terms.")} aria-label="Campaign options"><MoreHorizontal size={19}/></button></div><div className="campaign-title-row"><h3>{c.title}</h3>{c.status!=="Active"&&<span className={`status-pill status-${c.status.toLowerCase().replace(" ","-")}`}>{c.status}</span>}</div><p className="campaign-description">{c.description}</p><div className="channel-tag"><Icon size={14}/>{c.channel}</div><div className="card-divider"/><div className="reward-row"><div><span className="meta-label">REWARD PER CREATOR</span><strong className="reward-value">{money(c.reward)}<small> / task</small></strong></div><div className="slots-copy"><strong>{Math.max(0,c.slots-c.joined)} <span>{c.joined>=c.slots?"slots filled":"spots left"}</span></strong><div className="progress-track"><span style={{width:`${Math.min(100,c.joined/c.slots*100)}%`}}/></div></div></div><div className="deadline-row"><span><Clock3 size={14}/> Ends {c.deadline}</span><span>{c.joined}/{c.slots} joined</span></div><button className={`campaign-cta ${joined?"joined-cta":""}`} onClick={()=>setSelected(c)} disabled={c.status!=="Active"||c.joined>=c.slots}>{joined?(p?.status==="Submitted"?"View submission":p?.status==="Approved"?"View approved work":"View campaign"):c.status==="Active"&&c.joined>=c.slots?"Slots filled":c.status==="Active"?"View campaign":c.status==="Upcoming"?"Coming soon":"Campaign closed"}{!joined&&c.status==="Active"&&<ArrowRight size={15}/>}</button></article>;})}</div>}
+          <div className="section-footnote"><ShieldCheck size={15}/> Campaign funds should be secured before work begins. Always review requirements and disclosure rules.</div></section>
+        </> : <section className="inner-page"><div className="eyebrow"><span className="eyebrow-dot"/> YOUR WORKSPACE</div><div className="inner-title-row"><div><h1>{page==="My campaigns"?"Your campaigns":page==="My participation"?"Your participation":page==="Earnings"?"Earnings overview":page==="Wallet"?"Your wallet":"Create a campaign"}</h1><p>{page==="My campaigns"?"Manage briefs, track submissions, and review creator work.":page==="My participation"?"Every campaign you've joined, with submission and review status.":page==="Earnings"?"Track approved work and rewards due to your wallet.":page==="Wallet"?"Connect your Base wallet to manage campaign funding and rewards.":"Set clear expectations and invite the right creators."}</p></div>{page==="My campaigns"&&<button className="primary-button" onClick={()=>setShowCreate(true)}><Plus size={16}/> New campaign</button>}</div>
+          {page==="My campaigns"?<>{filtered.length===0?<div className="empty-state"><BriefcaseBusiness size={26}/><h3>No campaigns yet</h3><p>Create a campaign to start finding creators.</p><button className="primary-button" onClick={()=>setShowCreate(true)}><Plus size={16}/> Create campaign</button></div>:<div className="table-wrap"><table><thead><tr><th>CAMPAIGN</th><th>CHANNEL</th><th>REWARD</th><th>PARTICIPANTS</th><th>DEADLINE</th><th>STATUS</th><th/></tr></thead><tbody>{filtered.map(c=><tr key={c.id}><td><div className="table-campaign"><BrandMark name={c.brand} initials={c.initials} accent={c.accent} logo={c.logo}/><div><strong>{c.title}</strong><span>{c.brand}</span></div></div></td><td>{c.channel}</td><td>{money(c.reward)}</td><td>{c.joined} / {c.slots}</td><td>{c.deadline}</td><td><span className={`status-pill status-${c.status.toLowerCase().replace(" ","-")}`}>{c.status}</span></td><td><button className="dots-button" onClick={()=>setSelected(c)} aria-label="View campaign"><ArrowRight size={16}/></button></td></tr>)}</tbody></table></div>}</>:page==="My participation"?<><div className="notification-settings-card"><div className="notification-settings-head"><div><strong>Notification preferences</strong><p>Choose where Bozi should notify you when campaign slots fill or your reward is distributed.</p></div><button className="secondary-button" onClick={()=>setShowNotificationSettings(v=>!v)}>{showNotificationSettings?"Hide settings":"Edit preferences"}</button></div>{showNotificationSettings&&<div className="notification-form"><label>Email address<input type="email" value={notificationPrefs.email} onChange={e=>setNotificationPrefs(p=>({...p,email:e.target.value}))} placeholder="you@example.com"/></label><label>Telegram username<input value={notificationPrefs.telegram} onChange={e=>setNotificationPrefs(p=>({...p,telegram:e.target.value.replace(/^@/,"")}))} placeholder="@yourusername"/></label><label className="notification-check"><input type="checkbox" checked={notificationPrefs.slotsFilled} onChange={e=>setNotificationPrefs(p=>({...p,slotsFilled:e.target.checked}))}/> Notify me when campaign slots fill</label><label className="notification-check"><input type="checkbox" checked={notificationPrefs.rewardsDistributed} onChange={e=>setNotificationPrefs(p=>({...p,rewardsDistributed:e.target.checked}))}/> Notify me when my reward is distributed</label><p className="notification-disclaimer">Preferences are saved in this browser. Actual email and Telegram delivery requires Bozi’s notification backend.</p><button className="primary-button" onClick={()=>{if(notificationPrefs.email.trim()&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(notificationPrefs.email.trim())){setNotice("Enter a valid email address or clear the email field.");return;}setShowNotificationSettings(false);setNotice("Notification preferences saved in this browser.");}}>Save preferences <Check size={15}/></button></div>}</div>{filtered.length===0?<div className="empty-state"><FileCheck2 size={26}/><h3>No participation yet</h3><p>Join a campaign from Explore to track your work here.</p><button className="primary-button" onClick={()=>setPage("Explore")}>Explore campaigns <ArrowRight size={15}/></button></div>:<div className="participation-list">{filtered.map(c=>{const p=myParticipations.find(x=>x.campaignId===c.id)!;return <div className="participation-entry" key={c.id}><div className={`participation-card participation-campaign-box campaign-${c.accent}`}><BrandMark name={c.brand} initials={c.initials} accent={c.accent} logo={c.logo}/><div className="participation-main"><div className="participation-title"><strong>{c.title}</strong><span className={`status-pill status-${p.status.toLowerCase()}`}>{p.status}</span></div><span>{c.brand} · {c.category} · {c.channel}</span><p className="participation-description">{c.description}</p><div className="participation-detail-grid"><div><span>REWARD PER APPROVED TASK</span><strong>{money(c.reward)}</strong></div><div><span>DEADLINE</span><strong>{c.deadline}</strong></div><div><span>PARTICIPATION SLOTS</span><strong>{c.joined}/{c.slots} joined</strong></div><div><span>CAMPAIGN STATUS</span><strong>{c.status}</strong></div></div><div className="participation-brief"><strong>Campaign requirements</strong><p>{c.requirements}</p></div>{p.walletAddress&&<span className="participant-wallet">Joined wallet: {p.walletAddress.slice(0,8)}…{p.walletAddress.slice(-6)}</span>}</div><button className="secondary-button participation-details-button" onClick={()=>setSelected(c)}>Full details <ArrowRight size={14}/></button></div>{p.status==="Joined"?<div className="bozi-prompt-mini"><span><strong>Post about Bozi</strong> Copy the suggested post or write your own about Bozi before submitting.</span><button className="secondary-button" onClick={async()=>{try{await navigator.clipboard.writeText(p.promoPost||buildParticipantPost(c,p.walletAddress||"creator"));setNotice("Suggested Bozi post copied. You can also write your own.");}catch{setNotice("Copy failed. Open Full details to view the suggested post and copy it manually.");}}}>Copy post</button></div>:null}</div>})}</div>}</>:page==="Earnings"?<div className="earnings-grid"><div className="earnings-panel earnings-primary"><span>APPROVED REWARDS</span><strong>{money(participations.filter(p=>p.status==="Approved").reduce((sum,p)=>sum+(campaigns.find(c=>c.id===p.campaignId)?.reward||0),0))}</strong><p>Approved rewards in this browser session</p></div><div className="earnings-panel"><span>AWAITING REVIEW</span><strong>{participations.filter(p=>p.status==="Submitted").length}</strong><p>Submitted links awaiting campaign owner review</p></div><div className="earnings-panel"><span>PARTICIPATION</span><strong>{participations.length}</strong><p>Campaigns you've joined</p></div><div className="notice-panel"><ShieldCheck size={20}/><div><strong>Rewards are not yet onchain</strong><p>Connect the Base wallet and integrate the campaign escrow contract before showing balances as withdrawable or making real payouts.</p></div></div></div>:page==="Wallet"?<div className="wallet-empty"><div className="wallet-empty-icon"><Wallet size={27}/></div><h2>Your wallet, your work</h2><p>Connect an Base-compatible wallet to fund campaigns, verify your identity for payouts, and receive creator rewards.</p><button className="primary-button" onClick={()=>setNotice("Wallet integration is not configured yet. No wallet request has been sent.")}><Wallet size={16}/> Connect Base wallet</button><div className="wallet-points"><span><Check size={15}/> Base Mainnet · Chain ID 8453</span><span><Check size={15}/> Campaign funding and rewards</span><span><Check size={15}/> Transparent protocol fee</span></div></div>:null}
+        </section>}
+        <footer className="footer"><span>© 2026 Bozi</span><span><span className="footer-dot"/> Built for fair creator partnerships</span><div className="footer-socials" aria-label="Social links"><a className="footer-social-link" href="https://x.com/akuwazir" target="_blank" rel="noopener noreferrer" aria-label="Bozi on X (Twitter)" title="X (Twitter)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.9 2H22l-6.78 7.75L23.2 22h-6.25l-4.9-7.4L5.57 22H2.44l7.25-8.28L1.8 2h6.4l4.43 6.76L18.9 2Zm-1.1 17.9h1.73L7.28 4H5.42L17.8 19.9Z" fill="currentColor"/></svg></a><a className="footer-social-link telegram-social-link" href="https://t.me/Extraholds" target="_blank" rel="noopener noreferrer" aria-label="Bozi on Telegram" title="Telegram"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.7 3.3 18.4 20c-.25 1.18-.92 1.47-1.87.92l-5.18-3.82-2.5 2.4c-.28.28-.52.52-1.07.52l.37-5.27 9.6-8.68c.42-.37-.1-.58-.65-.21L5.23 13.3.13 11.7c-1.1-.34-1.12-1.1.23-1.63L20.3 2.43c.91-.34 1.7.22 1.4.87Z" fill="currentColor"/></svg></a></div><button onClick={()=>setNotice("Bozi is a campaign marketplace concept. Onchain funding and payout execution must be integrated before launch.")}>Protocol status <ArrowUpRight size={13}/></button></footer>
+      </div>
+    </main>
+    {joinedPostPopup&&<div className="modal-backdrop join-post-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setJoinedPostPopup(null);}}><section className="detail-modal join-post-modal" role="dialog" aria-modal="true" aria-labelledby="joined-post-title"><div className="modal-top"><div><span className="modal-label">CAMPAIGN JOINED</span><h2 id="joined-post-title">Your Bozi post is ready</h2><p>One-time promotion for <strong>{joinedPostPopup.campaign.title}</strong>. Publish it on {joinedPostPopup.campaign.channel}, then add the public post URL beneath your campaign in My Participation.</p></div><button className="icon-button" onClick={()=>setJoinedPostPopup(null)} aria-label="Close"><X size={19}/></button></div><div className="promo-post-card join-popup-post"><div className="promo-post-head"><strong>Ready-to-post Bozi promotion</strong><span>{joinedPostPopup.campaign.channel}</span></div><p>{joinedPostPopup.post}</p><button className="primary-button promo-copy-button" onClick={async()=>{try{await navigator.clipboard.writeText(joinedPostPopup.post);setNotice("Bozi post copied. Publish it, then add its URL beneath the campaign in My Participation.");}catch{setNotice("Copy failed. Select and copy the prepared post manually.");}}}><BookOpen size={15}/> Copy post</button></div><div className="modal-actions"><button className="secondary-button" onClick={()=>setJoinedPostPopup(null)}>I’ll post it later</button><button className="primary-button" onClick={()=>{setJoinedPostPopup(null);setPage("My participation");}}>Go to My participation <ArrowRight size={14}/></button></div></section></div>}
+    {selected&&<div className="modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setSelected(null);}}><section className="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-title"><div className="modal-top"><span className="modal-label">CAMPAIGN DETAILS</span><button className="icon-button" onClick={()=>setSelected(null)} aria-label="Close"><X size={19}/></button></div><div className="detail-brand"><BrandMark name={selected.brand} initials={selected.initials} accent={selected.accent} logo={selected.logo}/><div><strong>{selected.brand}</strong><span>{selected.category} · {selected.channel}</span></div><span className={`status-pill status-${selected.status.toLowerCase().replace(" ","-")}`}>{selected.status}</span></div><h2 id="detail-title">{selected.title}</h2><p className="detail-description">{selected.description}</p><div className="detail-reward"><div><span>REWARD PER APPROVED TASK</span><strong>{money(selected.reward)}</strong></div><div><span>OPEN SLOTS</span><strong>{Math.max(0,selected.slots-selected.joined)} <small>of {selected.slots}</small></strong></div><div><span>DEADLINE</span><strong className="deadline-value">{selected.deadline}</strong></div></div><div className="brief-box"><h3>What you'll need to do</h3><p>{selected.requirements}</p><h3>Campaign terms</h3><ul><li>One participation per profile for this campaign.</li><li>Submit one public URL only. Once submitted, it cannot be replaced, even if rejected.</li><li>No joining or new submissions after the deadline. Existing submissions may still be reviewed.</li><li>Payment is subject to owner review and available funded budget.</li></ul></div>{ownsCampaign(selected)?<div className="submission-area"><div className="creator-owner-banner"><strong>Campaign owner view</strong><span>Only the creator wallet can manage this campaign and review submissions.</span><button className="secondary-button" onClick={()=>{if(!ownsCampaign(selected)){setNotice("Only the creator wallet can edit this campaign.");return;}setEditingCampaignId(selected.id);setCreateForm({brand:selected.brand,title:selected.title,description:selected.description,category:selected.category,channel:selected.channel,reward:String(selected.reward),slots:String(selected.slots),deadline:new Date(selected.deadline).toISOString().slice(0,10),requirements:selected.requirements,logo:selected.logo||"",creatorEmail:selected.creatorEmail||"",creatorTelegram:selected.creatorTelegram||""});setSelected(null);setShowCreate(true);}}>Edit campaign</button></div><h3 className="review-heading">Creator review <span>{participations.filter(p=>p.campaignId===selected.id&&p.link).length} submissions</span></h3>{participations.filter(p=>p.campaignId===selected.id&&p.link).length===0?<p className="form-hint">No creator submissions yet. New submissions will appear here for review.</p>:participations.filter(p=>p.campaignId===selected.id&&p.link).map(p=><div className="review-submission" key={`${p.campaignId}-${p.walletAddress||"unknown"}`}><div><strong>Participant submission</strong><span className="participant-wallet">{p.walletAddress?`${p.walletAddress.slice(0,8)}…${p.walletAddress.slice(-6)}`:"Wallet not recorded"}</span><a href={p.promoLink||p.link} target="_blank" rel="noreferrer">Bozi post: {p.promoLink||"Not provided"} <ExternalLink size={12}/></a>{p.promoLink&&<a href={p.link} target="_blank" rel="noreferrer">Campaign work: {p.link} <ExternalLink size={12}/></a>}<span className={`status-pill status-${p.status.toLowerCase()}`}>{p.status}</span></div>{p.status==="Submitted"?<div className="review-actions"><button onClick={()=>{setParticipations(ps=>ps.map(x=>x.campaignId===p.campaignId && x.walletAddress?.toLowerCase()===p.walletAddress?.toLowerCase()?{...x,status:"Approved"}:x));setNotice("Submission approved in demo mode. Onchain payout is not connected.");}}>Approve</button><button onClick={()=>{setParticipations(ps=>ps.map(x=>x.campaignId===p.campaignId && x.walletAddress?.toLowerCase()===p.walletAddress?.toLowerCase()?{...x,status:"Rejected"}:x));setNotice("Submission rejected. The original link remains locked and cannot be replaced.");}}>Reject</button></div>:<p className="form-hint">Review decision recorded. Submission link remains locked.</p>}</div>)}</div>:myParticipations.some(p=>p.campaignId===selected.id)?<div className="submission-area">{(()=>{const p=myParticipations.find(x=>x.campaignId===selected.id)!;return p.status==="Joined"?<><div className="submission-field-group"><label htmlFor="submission-link">1. Main campaign work URL <span>REQUIRED</span></label><input className="submission-full-input" id="submission-link" value={submissionLink} onChange={e=>setSubmissionLink(e.target.value)} placeholder="https://link-to-your-campaign-work.com"/><p className="form-hint">Paste the public link to the actual work requested by {selected.brand}. Both links are submitted together and cannot be replaced.</p></div><div className="submission-field-group"><label htmlFor="bozi-post-link">2. Link URL post about Bozi <span>REQUIRED</span></label><input className="submission-full-input" id="bozi-post-link" value={submissionPromoLink || (participations.find(x=>x.campaignId===selected.id && x.walletAddress?.toLowerCase()===walletAddress.toLowerCase())?.promoDraftLink || "")} onChange={e=>setSubmissionPromoLink(e.target.value)} placeholder="https://link-to-your-Bozi-post.com"/><p className="form-hint">Publish the Bozi post on {selected.channel}, then paste that post's public URL here.</p></div><button className="primary-button full-button" onClick={submitLink}>Submit both links <ArrowRight size={14}/></button></>:<div className="submitted-lock"><BadgeCheck size={18}/><div><strong>{p.status==="Submitted"?"Both links received":p.status==="Approved"?"Work approved":"Submission reviewed"}</strong><p>Bozi post: {p.promoLink||"Not recorded"}<br/>Campaign work: {p.link||"Not recorded"}<br/>{p.status==="Rejected"?"Both submitted links are locked and cannot be replaced.":"Both submitted links are locked."}</p></div></div>})()}</div>:selected.status==="Active"&&selected.joined<selected.slots? <button className="primary-button full-button" onClick={()=>joinCampaign(selected)}>{walletAddress?"Join campaign":"Connect wallet to join"} <ArrowRight size={16}/></button>:<button className="secondary-button full-button" disabled>{selected.joined>=selected.slots?"All slots filled":"Not accepting participants"}</button>}<div className="modal-disclaimer"><ShieldCheck size={14}/> Demo mode: wallet funding, onchain payouts, and real email/Telegram notifications are not connected yet.</div></section></div>}
+    {showCreate&&<div className="modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setShowCreate(false);}}><section className="create-modal" role="dialog" aria-modal="true" aria-labelledby="create-title"><div className="modal-top"><div><span className="modal-label">{editingCampaignId?"CREATOR CONTROLS":"NEW CAMPAIGN"}</span><h2 id="create-title">{editingCampaignId?"Edit your campaign":"Set up your campaign"}</h2><p>{editingCampaignId?"Only the wallet that created this campaign can change its details.":"Write a clear brief. Creators need to know exactly what success looks like."}</p></div><button className="icon-button" onClick={()=>setShowCreate(false)} aria-label="Close"><X size={19}/></button></div><form onSubmit={createCampaign}><div className="form-grid"><label>Brand / organization *<input required value={createForm.brand} onChange={e=>setCreateForm({...createForm,brand:e.target.value})} placeholder="e.g. Northstar Studio"/></label><div className="brand-upload-field"><span className="field-label">Brand logo <small>OPTIONAL</small></span><div className="brand-upload-row">{createForm.logo?<img className="brand-upload-preview" src={createForm.logo} alt="Brand logo preview"/>:<div className="brand-upload-placeholder"><BriefcaseBusiness size={18}/></div>}<div className="brand-upload-copy"><strong>{createForm.logo?"Logo ready to use":"Add your brand image"}</strong><span>Square image recommended · PNG, JPG, WebP</span><label className="upload-logo-button">{createForm.logo?"Change image":"Upload image"}<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={e=>{const file=e.target.files?.[0];if(!file)return;if(file.size>1_500_000){setNotice("Please choose a logo under 1.5 MB.");e.currentTarget.value="";return;}const reader=new FileReader();reader.onload=()=>setCreateForm(f=>({...f,logo:String(reader.result||"")}));reader.readAsDataURL(file);}}/></label></div>{createForm.logo&&<button type="button" className="remove-logo-button" onClick={()=>setCreateForm(f=>({...f,logo:""}))}>Remove</button>}</div><span className="upload-help">Your logo appears in a small circular badge on campaign cards and details.</span></div><label>Campaign category<select value={createForm.category} onChange={e=>setCreateForm({...createForm,category:e.target.value})}>{["Web3","Beauty","Media","Technology","Community","Creative","Education","Lifestyle","Other"].map(x=><option key={x}>{x}</option>)}</select></label><label className="wide-field">Campaign title *<input required maxLength={90} value={createForm.title} onChange={e=>setCreateForm({...createForm,title:e.target.value})} placeholder="What should creators make?"/></label><label className="wide-field">Short brief<textarea required maxLength={500} rows={3} value={createForm.description} onChange={e=>setCreateForm({...createForm,description:e.target.value})} placeholder="Describe the campaign and why it matters."/></label><label>Promotion channel<select value={createForm.channel} onChange={e=>setCreateForm({...createForm,channel:e.target.value as Channel})}>{["X / Twitter","TikTok","WhatsApp","Telegram","Video","Blog","Medium","Other"].map(x=><option key={x}>{x}</option>)}</select></label><label>Deadline *<input required type="date" min={new Date().toISOString().slice(0,10)} value={createForm.deadline} onChange={e=>setCreateForm({...createForm,deadline:e.target.value})}/></label><label>Reward per creator (USD) *<input required type="number" min="1" step="1" value={createForm.reward} onChange={e=>setCreateForm({...createForm,reward:e.target.value})}/></label><label>Creator slots *<input required type="number" min="1" max="10000" step="1" value={createForm.slots} onChange={e=>setCreateForm({...createForm,slots:e.target.value})}/></label><div className="wide-field campaign-notify-box"><strong>Creator notifications</strong><p>Optional contact details for updates when all slots fill and when campaign rewards are distributed.</p><label>Creator email<input type="email" value={createForm.creatorEmail} onChange={e=>setCreateForm({...createForm,creatorEmail:e.target.value})} placeholder="campaigns@yourbrand.com"/></label><label>Creator Telegram username<input value={createForm.creatorTelegram} onChange={e=>setCreateForm({...createForm,creatorTelegram:e.target.value.replace(/^@/,"")})} placeholder="@brandteam"/></label></div><label className="wide-field">Requirements & review rules<textarea required rows={3} maxLength={1000} value={createForm.requirements} onChange={e=>setCreateForm({...createForm,requirements:e.target.value})}/></label></div><div className="budget-summary"><div><span>Campaign budget</span><strong>{money(Math.max(0,Number(createForm.reward)||0)*Math.max(0,Number(createForm.slots)||0))}</strong><small>Reward × creator slots</small></div><div><span>Protocol fee (5%)</span><strong>{money(Math.max(0,Number(createForm.reward)||0)*Math.max(0,Number(createForm.slots)||0)*0.05)}</strong><small>Paid to protocol fee recipient</small></div><div className="budget-total"><span>Estimated total funding</span><strong>{money(Math.max(0,Number(createForm.reward)||0)*Math.max(0,Number(createForm.slots)||0)*1.05)}</strong><small>Demo estimate · not yet deposited</small></div></div><div className="fee-note"><ShieldCheck size={16}/><p>For launch, campaign funds must be deposited into Base escrow before activation. The 5% fee is shown separately and is not deducted from creator rewards. Funding and escrow verification are not enabled in this demo.</p></div><div className="modal-actions"><button type="button" className="secondary-button" onClick={()=>{setShowCreate(false);setEditingCampaignId(null);}}>Cancel</button><button type="submit" className="primary-button">{editingCampaignId?"Save campaign changes":"Save campaign draft"} <ArrowRight size={15}/></button></div></form></section></div>}
+    {notice&&<div className="toast" role="status"><span className="toast-check"><Check size={15}/></span><span>{notice}</span><button onClick={()=>setNotice("")} aria-label="Dismiss"><X size={15}/></button></div>}
+  </div>;
+}
+export default App;
