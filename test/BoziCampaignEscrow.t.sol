@@ -57,6 +57,7 @@ contract BoziCampaignEscrowTest {
         vm.prank(BRAND);
         escrow.approveSubmission(id, CREATOR);
         require(token.balanceOf(CREATOR) == 100_000, "creator paid");
+        require(token.balanceOf(address(escrow)) == 900_000, "escrow balance reduced");
     }
 
     function testRefundRequiresDeadlineAndFinalizedParticipants() public {
